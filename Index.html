@@ -247,46 +247,46 @@
 
   <div class="page-bar">
     <div class="page-tabs" id="pageTabs" role="tablist" aria-label="รายการหน้า"></div>
-    <button class="btn page-add" id="addPageBtn" type="button">➕ หน้าใหม่</button>
+    <button class="btn page-add" id="addPageBtn" type="button" title="เพิ่มหน้าใหม่">➕ หน้าใหม่</button>
   </div>
 
   <div class="problem-panel" id="problemPanel">
-    <button class="problem-toggle" id="problemToggle" type="button" aria-expanded="true" aria-controls="problemBody">
+    <button class="problem-toggle" id="problemToggle" type="button" aria-expanded="true" aria-controls="problemBody" title="ย่อ/ขยายช่องโจทย์">
       <span>📋 โจทย์ประจำหน้านี้</span><span class="chev">▾</span>
     </button>
     <div class="problem-body" id="problemBody">
       <textarea id="problemInput" class="problem-textarea" placeholder="พิมพ์โจทย์ที่นี่..." rows="2"></textarea>
       <div class="problem-image-row">
-        <button class="btn problem-attach" id="attachImgBtn" type="button">📎 แนบรูปโจทย์</button>
+        <button class="btn problem-attach" id="attachImgBtn" type="button" title="แนบรูปโจทย์จากเครื่อง">📎 แนบรูปโจทย์</button>
         <input type="file" id="problemImgInput" accept="image/*" hidden>
         <div class="problem-img-wrap" id="problemImgWrap" style="display:none">
           <img id="problemImgPreview" class="problem-img" alt="รูปโจทย์">
-          <button class="problem-img-remove" id="problemImgRemove" type="button" aria-label="ลบรูปโจทย์">🗑️</button>
+          <button class="problem-img-remove" id="problemImgRemove" type="button" aria-label="ลบรูปโจทย์" title="ลบรูปโจทย์">🗑️</button>
         </div>
       </div>
       <div class="problem-sample-row">
-        <select id="sampleCategorySelect" class="sample-select" aria-label="ประเภทโจทย์ทศนิยม">
+        <select id="sampleCategorySelect" class="sample-select" aria-label="ประเภทโจทย์ทศนิยม" title="เลือกประเภทโจทย์">
           <option value="add">➕ บวก</option>
           <option value="sub">➖ ลบ</option>
           <option value="mul">✖️ คูณ</option>
           <option value="div">➗ หาร</option>
         </select>
-        <button class="btn sample-btn" id="sampleBtn" type="button">🎲 สุ่มโจทย์ทศนิยม</button>
+        <button class="btn sample-btn" id="sampleBtn" type="button" title="สุ่มโจทย์ทศนิยมตามประเภทที่เลือก">🎲 สุ่มโจทย์ทศนิยม</button>
       </div>
     </div>
   </div>
 
   <div class="toolbar">
     <div class="colors" id="colors" role="group" aria-label="เลือกสี"></div>
-    <button class="btn num"     id="numBtn" type="button">🔤 เลข/คำ</button>
-    <button class="btn brace"   id="braceBtn" type="button">❴ ปีกกา</button>
-    <button class="btn bracket" id="bracketBtn" type="button">⟦ วงเล็บ</button>
-    <button class="btn divider" id="dividerBtn" type="button">┃ เส้นแบ่ง</button>
-    <button class="btn calc"    id="calcBtn" type="button">🧮 เครื่องคิดเลข</button>
-    <button class="btn cut"     id="cutBtn" type="button">✂️ ตัด</button>
-    <button class="btn pen"     id="penBtn" type="button">🖊️ กระดาษทด</button>
+    <button class="btn num"     id="numBtn" type="button" title="เพิ่มตัวเลขหรือข้อความลอย">🔤 เลข/คำ</button>
+    <button class="btn brace"   id="braceBtn" type="button" title="เพิ่มปีกกา">❴ ปีกกา</button>
+    <button class="btn bracket" id="bracketBtn" type="button" title="เพิ่มวงเล็บ">⟦ วงเล็บ</button>
+    <button class="btn divider" id="dividerBtn" type="button" title="เพิ่มเส้นแบ่งช่อง">┃ เส้นแบ่ง</button>
+    <button class="btn calc"    id="calcBtn" type="button" title="เปิดเครื่องคิดเลข">🧮 เครื่องคิดเลข</button>
+    <button class="btn cut"     id="cutBtn" type="button" title="โหมดตัดบาร์เป็น 2 ชิ้น">✂️ ตัด</button>
+    <button class="btn pen"     id="penBtn" type="button" title="โหมดกระดาษทด (ขีดเขียนอิสระ)">🖊️ กระดาษทด</button>
     <button class="btn pen-clear" id="penClearBtn" type="button" aria-label="ลบรอยขีดเขียน" title="ลบรอยขีดเขียน">🧽</button>
-    <button class="btn ruler"   id="rulerBtn" type="button">📏 ไม้บรรทัด</button>
+    <button class="btn ruler"   id="rulerBtn" type="button" title="เพิ่มไม้บรรทัด">📏 ไม้บรรทัด</button>
     <button class="btn copy"    id="copyBtn" type="button" aria-label="คัดลอกวัตถุ" title="คัดลอก (Ctrl+C)" disabled>📋</button>
     <button class="btn paste"   id="pasteBtn" type="button" aria-label="วางวัตถุ" title="วาง (Ctrl+V)" disabled>📥</button>
     <button class="btn undo"    id="undoBtn" type="button" aria-label="ย้อนกลับ" title="ย้อนกลับ (Ctrl+Z)">↩️</button>
@@ -321,16 +321,16 @@
       <h3 id="modalTitle">พิมพ์ตัวเลข / ข้อความ</h3>
       <input id="labelInput" type="text" inputmode="text" lang="th" placeholder="เช่น 1,250,000 หรือ 3.125 หรือ รวม" autocomplete="off">
       <div class="kbtabs">
-        <button class="kbtab active" data-tab="num">🔢 ตัวเลข</button>
-        <button class="kbtab" data-tab="thai">ก–ฮ ไทย</button>
-        <button class="kbtab" data-tab="word">💬 คำ</button>
+        <button class="kbtab active" data-tab="num" title="แป้นพิมพ์ตัวเลข">🔢 ตัวเลข</button>
+        <button class="kbtab" data-tab="thai" title="แป้นพิมพ์ภาษาไทย">ก–ฮ ไทย</button>
+        <button class="kbtab" data-tab="word" title="แป้นคำสำเร็จรูป">💬 คำ</button>
       </div>
       <div class="kbpanel" id="kbNum"></div>
       <div class="kbpanel" id="kbThai"></div>
       <div class="kbpanel" id="kbWord"></div>
       <div class="row">
-        <button class="btn ghost" id="cancelBtn">ยกเลิก</button>
-        <button class="btn ok" id="okBtn">✔ ตกลง</button>
+        <button class="btn ghost" id="cancelBtn" title="ยกเลิกการแก้ไข">ยกเลิก</button>
+        <button class="btn ok" id="okBtn" title="บันทึกข้อความนี้">✔ ตกลง</button>
       </div>
     </div>
   </div>
@@ -340,30 +340,30 @@
       <h3 id="calcTitle">🧮 เครื่องคิดเลข</h3>
       <div class="calc-display" id="calcDisplay" role="status" aria-live="polite">0</div>
       <div class="calc-grid" id="calcGrid">
-        <button class="calc-key danger" type="button" data-calc="CLEAR">C</button>
-        <button class="calc-key danger" type="button" data-calc="BACK">⌫</button>
-        <button class="calc-key op" type="button" data-calc="(">(</button>
-        <button class="calc-key op" type="button" data-calc=")">)</button>
-        <button class="calc-key" type="button" data-calc="7">7</button>
-        <button class="calc-key" type="button" data-calc="8">8</button>
-        <button class="calc-key" type="button" data-calc="9">9</button>
-        <button class="calc-key op" type="button" data-calc="÷">÷</button>
-        <button class="calc-key" type="button" data-calc="4">4</button>
-        <button class="calc-key" type="button" data-calc="5">5</button>
-        <button class="calc-key" type="button" data-calc="6">6</button>
-        <button class="calc-key op" type="button" data-calc="×">×</button>
-        <button class="calc-key" type="button" data-calc="1">1</button>
-        <button class="calc-key" type="button" data-calc="2">2</button>
-        <button class="calc-key" type="button" data-calc="3">3</button>
-        <button class="calc-key op" type="button" data-calc="−">−</button>
-        <button class="calc-key" type="button" data-calc="0">0</button>
-        <button class="calc-key" type="button" data-calc=".">.</button>
-        <button class="calc-key equals" type="button" data-calc="EQUALS">=</button>
-        <button class="calc-key op" type="button" data-calc="+">+</button>
+        <button class="calc-key danger" type="button" data-calc="CLEAR" title="ล้างทั้งหมด">C</button>
+        <button class="calc-key danger" type="button" data-calc="BACK" title="ลบตัวล่าสุด">⌫</button>
+        <button class="calc-key op" type="button" data-calc="(" title="วงเล็บเปิด">(</button>
+        <button class="calc-key op" type="button" data-calc=")" title="วงเล็บปิด">)</button>
+        <button class="calc-key" type="button" data-calc="7" title="เลข 7">7</button>
+        <button class="calc-key" type="button" data-calc="8" title="เลข 8">8</button>
+        <button class="calc-key" type="button" data-calc="9" title="เลข 9">9</button>
+        <button class="calc-key op" type="button" data-calc="÷" title="หาร">÷</button>
+        <button class="calc-key" type="button" data-calc="4" title="เลข 4">4</button>
+        <button class="calc-key" type="button" data-calc="5" title="เลข 5">5</button>
+        <button class="calc-key" type="button" data-calc="6" title="เลข 6">6</button>
+        <button class="calc-key op" type="button" data-calc="×" title="คูณ">×</button>
+        <button class="calc-key" type="button" data-calc="1" title="เลข 1">1</button>
+        <button class="calc-key" type="button" data-calc="2" title="เลข 2">2</button>
+        <button class="calc-key" type="button" data-calc="3" title="เลข 3">3</button>
+        <button class="calc-key op" type="button" data-calc="−" title="ลบ">−</button>
+        <button class="calc-key" type="button" data-calc="0" title="เลข 0">0</button>
+        <button class="calc-key" type="button" data-calc="." title="จุดทศนิยม">.</button>
+        <button class="calc-key equals" type="button" data-calc="EQUALS" title="เท่ากับ">=</button>
+        <button class="calc-key op" type="button" data-calc="+" title="บวก">+</button>
       </div>
       <div class="row">
-        <button class="btn ghost" id="calcCancelBtn" type="button">ปิด</button>
-        <button class="btn ok" id="calcUseBtn" type="button">✔ ใช้ผลลัพธ์</button>
+        <button class="btn ghost" id="calcCancelBtn" type="button" title="ปิดเครื่องคิดเลข">ปิด</button>
+        <button class="btn ok" id="calcUseBtn" type="button" title="นำผลลัพธ์ไปใส่ในวัตถุที่เลือก">✔ ใช้ผลลัพธ์</button>
       </div>
     </div>
   </div>
@@ -404,12 +404,14 @@
       tab.setAttribute('role','tab');
       const btn=document.createElement('button');
       btn.type='button'; btn.className='page-tab-btn'; btn.textContent=`หน้า ${i+1}`;
+      btn.title=`ไปที่หน้า ${i+1}`;
       btn.setAttribute('aria-selected',String(i===currentPageIndex));
       btn.addEventListener('click',()=>switchToPage(i));
       tab.appendChild(btn);
       if(pages.length>1){
         const del=document.createElement('button');
         del.type='button'; del.className='page-tab-del'; del.textContent='×';
+        del.title=`ลบหน้า ${i+1}`;
         del.setAttribute('aria-label',`ลบหน้า ${i+1}`);
         del.addEventListener('click',e=>{ e.stopPropagation(); deletePage(i); });
         tab.appendChild(del);
@@ -606,7 +608,7 @@
   const cbox=document.getElementById('colors');
   COLORS.forEach((c,i)=>{
     const s=document.createElement('button');
-    s.type='button'; s.setAttribute('aria-label',`เลือกสีที่ ${i+1}`);
+    s.type='button'; s.setAttribute('aria-label',`เลือกสีที่ ${i+1}`); s.title=`เลือกสีที่ ${i+1}`;
     s.className='swatch'+(i===3?' active':''); s.style.background=c;
     s.addEventListener('click',()=>{curColor=c;
       document.querySelectorAll('.swatch').forEach(x=>x.classList.remove('active'));
@@ -733,7 +735,7 @@
   function attachResize(rec){
     const handle=document.createElement('button');
     handle.type='button'; handle.className='resize-handle';
-    handle.setAttribute('aria-label','ลากเพื่อปรับขนาด');
+    handle.setAttribute('aria-label','ลากเพื่อปรับขนาด'); handle.title='ลากเพื่อปรับขนาด';
     rec.el.appendChild(handle);
     let active=false,moved=false,sx=0,sy=0,start={},commitTimer=null;
     handle.addEventListener('pointerdown',e=>{
@@ -1009,6 +1011,7 @@
   function mkKey(label,val,cls){
     const b=document.createElement('button'); b.type='button';
     b.className='key'+(cls?' '+cls:''); b.textContent=label;
+    b.title = val==='DEL' ? 'ลบตัวอักษรล่าสุด' : val==='CLR' ? 'ล้างข้อความทั้งหมด' : val===' ' ? 'เว้นวรรค' : `พิมพ์ "${label}"`;
     b.addEventListener('click',()=>insert(val));
     return b;
   }
