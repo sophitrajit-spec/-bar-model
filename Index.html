@@ -92,12 +92,16 @@
   .problem-panel.collapsed .problem-body{display:none;}
   .problem-panel.collapsed .chev{transform:rotate(-90deg);}
   .problem-body{padding:8px 12px 12px; max-height:200px; overflow-y:auto;}
-  .problem-textarea{width:100%; font-family:inherit; font-size:15px; color:var(--ink);
-    border:2px solid var(--line); border-radius:10px; padding:8px 10px; resize:vertical;
-    min-height:42px; box-sizing:border-box;}
+  .problem-textarea{width:100%; font-family:inherit; font-size:22px; font-weight:700; line-height:1.4;
+    color:var(--ink); border:2px solid var(--line); border-radius:10px; padding:10px 12px; resize:vertical;
+    min-height:52px; box-sizing:border-box;}
   .problem-textarea:focus{outline:none; border-color:var(--blue);}
   .problem-image-row{display:flex; align-items:center; gap:10px; margin-top:8px; flex-wrap:wrap;}
   .btn.problem-attach{background:#3d6ea5; padding:8px 12px; font-size:13.5px;}
+  .problem-sample-row{display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap;}
+  .sample-select{font-family:inherit; font-size:13.5px; font-weight:700; color:var(--ink);
+    border:2px solid var(--line); border-radius:10px; padding:8px 8px; background:#fff; cursor:pointer;}
+  .btn.sample-btn{background:#e08a1f; padding:8px 12px; font-size:13.5px;}
   .problem-img-wrap{position:relative; display:flex; align-items:center;}
   .problem-img{max-height:76px; max-width:160px; border-radius:8px; border:2px solid var(--line);
     object-fit:contain; background:#f7f9fc; display:block;}
@@ -253,6 +257,15 @@
           <img id="problemImgPreview" class="problem-img" alt="รูปโจทย์">
           <button class="problem-img-remove" id="problemImgRemove" type="button" aria-label="ลบรูปโจทย์">🗑️</button>
         </div>
+      </div>
+      <div class="problem-sample-row">
+        <select id="sampleCategorySelect" class="sample-select" aria-label="ประเภทโจทย์ทศนิยม">
+          <option value="add">➕ บวก</option>
+          <option value="sub">➖ ลบ</option>
+          <option value="mul">✖️ คูณ</option>
+          <option value="div">➗ หาร</option>
+        </select>
+        <button class="btn sample-btn" id="sampleBtn" type="button">🎲 สุ่มโจทย์ทศนิยม</button>
       </div>
     </div>
   </div>
@@ -442,6 +455,50 @@
     const reader=new FileReader();
     reader.onload=()=>{ pages[currentPageIndex].problemImage=reader.result; renderProblemImage(reader.result); };
     reader.readAsDataURL(file);
+  }
+
+  /* ---------- sample decimal word problems (โจทย์ทศนิยม) ---------- */
+  const SAMPLE_PROBLEMS={
+    add:[
+      'แม่ซื้อข้าวสารหนัก 2.5 กิโลกรัม และซื้อน้ำตาลหนัก 1.25 กิโลกรัม รวมมีของหนักกี่กิโลกรัม',
+      'สมชายเดินทาง 3.4 กิโลเมตรในตอนเช้า และ 2.15 กิโลเมตรในตอนเย็น รวมเดินทางกี่กิโลเมตร',
+      'ก้อยมีเงิน 15.50 บาท ได้รับเพิ่มอีก 8.75 บาท ก้อยมีเงินทั้งหมดกี่บาท',
+      'ถังใบแรกมีน้ำ 4.6 ลิตร ถังใบที่สองมีน้ำ 3.75 ลิตร รวมมีน้ำกี่ลิตร',
+      'เชือกเส้นแรกยาว 1.2 เมตร เส้นที่สองยาว 0.85 เมตร นำมาต่อกันจะยาวกี่เมตร'
+    ],
+    sub:[
+      'มีนมอยู่ 5 ลิตร ดื่มไป 1.75 ลิตร เหลือนมกี่ลิตร',
+      'แตงโมหนัก 6.2 กิโลกรัม หั่นแบ่งให้เพื่อนไป 2.45 กิโลกรัม เหลือแตงโมกี่กิโลกรัม',
+      'มีเงิน 100 บาท ซื้อขนมไป 37.25 บาท เหลือเงินกี่บาท',
+      'ผ้าม้วนหนึ่งยาว 10.5 เมตร ตัดไปใช้ 3.8 เมตร เหลือผ้ากี่เมตร',
+      'ถังน้ำมันมี 8.4 ลิตร รถใช้ไป 3.65 ลิตร เหลือน้ำมันกี่ลิตร'
+    ],
+    mul:[
+      'ดินสอด้ามหนึ่งยาว 15.5 เซนติเมตร ถ้ามีดินสอ 4 ด้ามวางเรียงต่อกัน จะยาวรวมกี่เซนติเมตร',
+      'น้ำผลไม้ 1 ขวดมี 1.25 ลิตร ถ้าซื้อ 6 ขวด จะได้น้ำผลไม้กี่ลิตร',
+      'ข้าวสารถุงละ 2.5 กิโลกรัม ถ้าซื้อ 3 ถุง จะได้ข้าวสารกี่กิโลกรัม',
+      'ค่าเช่ารถวันละ 350.75 บาท ถ้าเช่า 3 วัน ต้องจ่ายเงินกี่บาท',
+      'เทียนไขแท่งหนึ่งยาว 0.8 เมตร ถ้ามี 5 แท่ง จะยาวรวมกี่เมตร'
+    ],
+    div:[
+      'น้ำหวาน 7.5 ลิตร แบ่งใส่ขวดเท่าๆ กัน 5 ขวด แต่ละขวดจะมีน้ำหวานกี่ลิตร',
+      'เงิน 45.6 บาท แบ่งให้เด็ก 4 คนเท่าๆ กัน แต่ละคนจะได้เงินกี่บาท',
+      'ผ้าเทปยาว 12.8 เมตร ตัดแบ่งเป็น 4 ท่อนเท่าๆ กัน แต่ละท่อนยาวกี่เมตร',
+      'ส้ม 9.6 กิโลกรัม แบ่งใส่ถุงเท่าๆ กัน 3 ถุง แต่ละถุงหนักกี่กิโลกรัม',
+      'ค่าอาหารทั้งหมด 156.50 บาท หารเท่าๆ กันระหว่างเพื่อน 5 คน แต่ละคนต้องจ่ายกี่บาท'
+    ]
+  };
+  function insertSampleProblem(){
+    const cat=document.getElementById('sampleCategorySelect').value;
+    const list=SAMPLE_PROBLEMS[cat]||[];
+    if(!list.length) return;
+    let pick=list[Math.floor(Math.random()*list.length)];
+    if(list.length>1&&pick===problemInput.value){
+      const rest=list.filter(t=>t!==problemInput.value);
+      pick=rest[Math.floor(Math.random()*rest.length)];
+    }
+    problemInput.value=pick;
+    pages[currentPageIndex].problemText=pick;
   }
 
   function showToast(message){
@@ -1003,6 +1060,7 @@
   document.getElementById('problemImgRemove').addEventListener('click',()=>{
     pages[currentPageIndex].problemImage=null; renderProblemImage(null);
   });
+  document.getElementById('sampleBtn').addEventListener('click',insertSampleProblem);
 
   board.addEventListener('pointerdown',e=>{ if(!e.target.closest('.obj')) deselect(); },true);
   document.addEventListener('copy',e=>{
