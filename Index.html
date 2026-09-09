@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>วาดบาร์โมเดล ✏️</title>
+<style>
+  :root{
+    --pink:#ff5d8f; --orange:#ff9f1c; --yellow:#ffd23f; --green:#3ec46d;
+    --blue:#4d96ff; --purple:#9b5de5; --teal:#2ec4b6; --red:#ff5a5a;
+    --dark:#39435e;
+    --ink:#39435e; --muted:#7b86a0; --paper:#ffffff; --line:#dfe6f2;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; height:100%; overflow:hidden;}
+  body{
+    font-family:"Sarabun","Segoe UI",Tahoma,sans-serif; color:var(--ink);
+    background:linear-gradient(180deg,#eafaff 0%,#f4fff0 45%,#fff6fb 100%);
+    display:flex; flex-direction:column; height:100dvh; touch-action:none; user-select:none;
+    overscroll-behavior:none;
+  }
+  input,textarea{user-select:text; -webkit-user-select:text;}
+
+  header{flex:none; text-align:center; padding:6px 10px 2px;}
+  header h1{
+    margin:0; font-size:clamp(17px,4.4vw,25px); font-weight:800;
+    background:linear-gradient(90deg,var(--green),var(--orange),var(--pink),var(--purple));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+
+  .toolbar{
+    flex:none; display:flex; flex-wrap:wrap; align-items:center; justify-content:center;
+    gap:7px; padding:5px 8px 7px;
+  }
+  .colors{display:flex; gap:5px; background:#fff; padding:5px; border-radius:16px;
+    box-shadow:0 4px 12px rgba(90,103,133,.14); border:2px solid #fff;}
+  .swatch{
+    width:32px; height:32px; border-radius:9px; cursor:pointer; border:3px solid #fff;
+    box-shadow:0 1px 3px rgba(0,0,0,.15); transition:transform .1s;
+  }
+  .swatch.active{border-color:var(--ink); transform:scale(1.12);}
+  .swatch:active{transform:scale(.94);}
+
+  .btn{
+    border:none; border-radius:13px; padding:9px 13px; font-family:inherit;
+    font-size:15px; font-weight:700; cursor:pointer; color:#fff;
+    box-shadow:0 4px 10px rgba(90,103,133,.18); transition:transform .1s;
+    display:inline-flex; align-items:center; gap:5px;
+  }
+  .btn:active{transform:scale(.95);}
+  .btn:focus-visible,.swatch:focus-visible,.kbtab:focus-visible,.key:focus-visible,
+  .modal input:focus-visible,.board:focus-visible{
+    outline:3px solid #1c63b8; outline-offset:3px;
+  }
+  .btn:disabled{opacity:.45; cursor:not-allowed; transform:none; box-shadow:none;}
+  .btn.num{background:var(--orange);}
+  .btn.brace,.btn.bracket{background:var(--teal);}
+  .btn.divider{background:var(--purple);}
+  .btn.calc{background:#5667d8;}
+  .btn.cut{background:#e84f73;}
+  .btn.cut.active{background:#b81845; outline:4px solid #ffc2d2;}
+  .btn.ruler{background:#bd8416;}
+  .btn.copy{background:#607d9f;}
+  .btn.paste{background:#3979b9;}
+  .btn.undo{background:var(--blue);}
+  .btn.clear{background:var(--red);}
+  .btn.grid{background:#8aa0bf;}
+  .btn.grid.off{background:#c4cdda;}
+
+  .board-wrap{flex:1 1 auto; padding:0 10px 10px; min-height:0;}
+  .board{
+    position:relative; width:100%; height:100%; background:#fff;
+    border-radius:20px; box-shadow:0 8px 22px rgba(90,103,133,.15);
+    border:3px solid #fff; overflow:hidden; touch-action:none;
+  }
+  .board.grid-on{
+    background-image:
+      linear-gradient(var(--line) 1px,transparent 1px),
+      linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:40px 40px;
+  }
+
+  .hint{
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:5px; pointer-events:none;
+    color:var(--muted); font-weight:700; font-size:clamp(14px,3.4vw,19px); text-align:center; padding:18px;
+  }
+  .hint .big{font-size:42px;}
+  .hint .small{font-size:.82em; font-weight:600;}
+
+  /* ---------- generic object ---------- */
+  .obj{position:absolute; touch-action:none;}
+  .obj.sel{outline:3px dashed var(--ink); outline-offset:3px; border-radius:8px;}
+
+  .bar{
+    border-radius:12px; border:3px solid rgba(255,255,255,.85);
+    box-shadow:0 4px 10px rgba(0,0,0,.14); display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+  }
+  .bar .label{
+    color:#fff; font-weight:800; text-align:center; width:100%; padding:2px 4px;
+    text-shadow:0 1px 2px rgba(0,0,0,.35); pointer-events:none; word-break:break-word; line-height:1.15;
+  }
+  .numobj{
+    display:flex; align-items:center; justify-content:center; padding:2px 6px;
+    font-weight:800; line-height:1.1; white-space:nowrap;
+    text-shadow:-2px -2px 0 #fff,2px -2px 0 #fff,-2px 2px 0 #fff,2px 2px 0 #fff,
+                0 2px 0 #fff,0 -2px 0 #fff,2px 0 0 #fff,-2px 0 0 #fff;
+  }
+  .shape svg{display:block; overflow:visible; pointer-events:none;}
+  .shape.ruler{background:rgba(255,210,63,.28); border:2px solid rgba(189,132,22,.55); border-radius:7px;}
+  .ruler-label{
+    position:absolute; color:var(--ink); font-size:12px; font-weight:800;
+    white-space:nowrap; pointer-events:none;
+  }
+  .draft{position:absolute; border-radius:12px; border:3px dashed rgba(0,0,0,.35); background:rgba(0,0,0,.06);}
+  .resize-handle{
+    position:absolute; right:4px; bottom:4px; width:28px; height:28px; display:none;
+    border:3px solid #fff; border-radius:50%; background:var(--ink); cursor:nwse-resize;
+    box-shadow:0 2px 6px rgba(0,0,0,.35); padding:0; z-index:5; touch-action:none;
+  }
+  .obj.sel>.resize-handle{display:block;}
+  .shape>.resize-handle{right:0; bottom:0;}
+  .board.cut-mode{cursor:crosshair; box-shadow:0 0 0 5px rgba(232,79,115,.3),0 8px 22px rgba(90,103,133,.15);}
+  .board.cut-mode .bar{cursor:crosshair;}
+  .toast{
+    position:fixed; left:50%; top:88px; transform:translateX(-50%) translateY(-12px);
+    max-width:min(560px,90vw); padding:10px 16px; border-radius:14px;
+    background:rgba(57,67,94,.96); color:#fff; font-weight:700; text-align:center;
+    box-shadow:0 6px 18px rgba(0,0,0,.22); opacity:0; pointer-events:none;
+    transition:.18s; z-index:80;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  /* ---------- floating action bar (shows when an object is selected) ---------- */
+  .actions{
+    position:fixed; left:50%; bottom:max(14px,env(safe-area-inset-bottom)); transform:translateX(-50%);
+    display:none; gap:8px; align-items:center;
+    background:rgba(255,255,255,.97); padding:8px 10px; border-radius:20px;
+    box-shadow:0 10px 30px rgba(0,0,0,.2); z-index:40; border:2px solid #fff;
+  }
+  .actions.show{display:flex;}
+  .actions .btn{padding:11px 14px; font-size:16px; border-radius:14px;}
+  .a-edit{background:var(--green);} .a-rot{background:var(--purple);}
+  .a-small,.a-big{background:var(--blue);} .a-del{background:var(--red);}
+
+  /* ---------- modal ---------- */
+  .modal{position:fixed; inset:0; background:rgba(30,40,60,.45); display:none;
+    align-items:center; justify-content:center; z-index:60; padding:20px;}
+  .modal.show{display:flex;}
+  .modal .box{background:#fff; border-radius:20px; padding:16px; width:min(440px,96vw);
+    box-shadow:0 14px 40px rgba(0,0,0,.3); text-align:center;}
+  .modal h3{margin:0 0 12px; font-size:18px;}
+  .modal input{width:100%; font-family:inherit; font-size:22px; font-weight:700; text-align:center;
+    padding:12px; border:3px solid var(--line); border-radius:14px; color:var(--ink);}
+  .modal input:focus{outline:none; border-color:var(--blue);}
+  .modal .row{display:flex; gap:10px; margin-top:14px;}
+  .modal .row .btn{flex:1; justify-content:center;}
+  .btn.ok{background:var(--green);} .btn.ghost{background:#fff; color:var(--ink); border:2px solid var(--line);}
+  /* on-screen keyboards */
+  .kbtabs{display:flex; gap:6px; margin:12px 0 8px;}
+  .kbtab{flex:1; border:2px solid var(--line); background:#f7f9fc; border-radius:12px; padding:9px 0;
+    font-family:inherit; font-weight:700; font-size:14px; cursor:pointer; color:var(--ink);}
+  .kbtab.active{background:var(--blue); color:#fff; border-color:var(--blue);}
+  .kbpanel{gap:5px; justify-content:center;}
+  #kbNum{display:grid; grid-template-columns:repeat(4,1fr); gap:6px; max-width:280px; margin:0 auto;}
+  #kbThai,#kbWord{display:flex; flex-wrap:wrap;}
+  .key{border:2px solid var(--line); background:#fff; border-radius:10px; font-family:inherit;
+    font-weight:700; cursor:pointer; color:var(--ink); display:flex; align-items:center; justify-content:center;
+    -webkit-user-select:none; user-select:none;}
+  .key:active{background:#e9eef6; transform:scale(.94);}
+  #kbNum .key{height:46px; font-size:20px;}
+  #kbNum .fn{background:#eef3fb; color:#3d6ea5;}
+  #kbThai .key{width:calc(11.11% - 5px); height:38px; font-size:18px;}
+  #kbThai .vw{background:#fff7ec;}
+  #kbThai .fn{background:#eef3fb; color:#3d6ea5; font-size:14px;}
+  #kbThai .fn.space{flex:1 1 40%;}
+  #kbWord .key{background:#eef7ff; border-color:#cfe6ff; color:#1f6bb0; padding:9px 13px; font-size:15px;}
+  .calc-display{
+    width:100%; min-height:64px; border:3px solid var(--line); border-radius:14px;
+    background:#f7f9fc; padding:10px 12px; text-align:right; font-size:28px;
+    font-weight:800; color:var(--ink); overflow-wrap:anywhere; margin-bottom:10px;
+  }
+  .calc-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:7px;}
+  .calc-key{
+    min-height:48px; border:2px solid var(--line); border-radius:12px; background:#fff;
+    font-family:inherit; font-size:20px; font-weight:800; color:var(--ink); cursor:pointer;
+  }
+  .calc-key:active{transform:scale(.95); background:#eaf0fb;}
+  .calc-key.op{background:#eef0ff; color:#3f50bf;}
+  .calc-key.danger{background:#fff0f0; color:#cf3f3f;}
+  .calc-key.equals{background:var(--green); color:#fff; border-color:var(--green);}
+
+  @media (max-width:480px){ .btn{padding:8px 10px; font-size:13.5px;} .swatch{width:29px;height:29px;} }
+</style>
+</head>
+<body>
+  <header><h1>✏️ วาดบาร์โมเดล</h1></header>
+
+  <div class="toolbar">
+    <div class="colors" id="colors" role="group" aria-label="เลือกสี"></div>
+    <button class="btn num"     id="numBtn" type="button">🔤 เลข/คำ</button>
+    <button class="btn brace"   id="braceBtn" type="button">❴ ปีกกา</button>
+    <button class="btn bracket" id="bracketBtn" type="button">⟦ วงเล็บ</button>
+    <button class="btn divider" id="dividerBtn" type="button">┃ เส้นแบ่ง</button>
+    <button class="btn calc"    id="calcBtn" type="button">🧮 เครื่องคิดเลข</button>
+    <button class="btn cut"     id="cutBtn" type="button">✂️ ตัด</button>
+    <button class="btn ruler"   id="rulerBtn" type="button">📏 ไม้บรรทัด</button>
+    <button class="btn copy"    id="copyBtn" type="button" aria-label="คัดลอกวัตถุ" title="คัดลอก (Ctrl+C)" disabled>📋</button>
+    <button class="btn paste"   id="pasteBtn" type="button" aria-label="วางวัตถุ" title="วาง (Ctrl+V)" disabled>📥</button>
+    <button class="btn undo"    id="undoBtn" type="button" aria-label="ย้อนกลับ" title="ย้อนกลับ (Ctrl+Z)">↩️</button>
+    <button class="btn grid"    id="gridBtn" type="button" aria-label="เปิดหรือปิดเส้นตาราง" title="เปิดหรือปิดเส้นตาราง">▦</button>
+    <button class="btn clear"   id="clearBtn" type="button" aria-label="ล้างทั้งหมด" title="ล้างทั้งหมด">🗑️</button>
+  </div>
+
+  <div class="board-wrap">
+    <div class="board grid-on" id="board" tabindex="0" role="application" aria-label="พื้นที่วาดบาร์โมเดล">
+      <div class="hint" id="hint">
+        <div class="big">👆</div>
+        <div>ลากนิ้ว/เมาส์บนพื้นที่นี้ เพื่อวาดสี่เหลี่ยม</div>
+        <div class="small">แตะแท่งเพื่อพิมพ์เลข/คำไทย · ใช้จุดจับมุมขวาล่างเพื่อปรับขนาด · ปุ่ม ┃ ใช้แบ่งช่อง</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- floating tools for the selected object -->
+  <div class="actions" id="actions" role="toolbar" aria-label="เครื่องมือสำหรับวัตถุที่เลือก">
+    <button class="btn a-edit"  id="aEdit" type="button">✏️ แก้ไข</button>
+    <button class="btn a-rot"   id="aRot" type="button">↻ หมุน</button>
+    <button class="btn a-small" id="aSmall" type="button" aria-label="ย่อวัตถุ">➖</button>
+    <button class="btn a-big"   id="aBig" type="button" aria-label="ขยายวัตถุ">➕</button>
+    <button class="btn a-del"   id="aDel" type="button" aria-label="ลบวัตถุ">🗑️</button>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="box">
+      <h3 id="modalTitle">พิมพ์ตัวเลข / ข้อความ</h3>
+      <input id="labelInput" type="text" inputmode="text" lang="th" placeholder="เช่น 1,250,000 หรือ 3.125 หรือ รวม" autocomplete="off">
+      <div class="kbtabs">
+        <button class="kbtab active" data-tab="num">🔢 ตัวเลข</button>
+        <button class="kbtab" data-tab="thai">ก–ฮ ไทย</button>
+        <button class="kbtab" data-tab="word">💬 คำ</button>
+      </div>
+      <div class="kbpanel" id="kbNum"></div>
+      <div class="kbpanel" id="kbThai"></div>
+      <div class="kbpanel" id="kbWord"></div>
+      <div class="row">
+        <button class="btn ghost" id="cancelBtn">ยกเลิก</button>
+        <button class="btn ok" id="okBtn">✔ ตกลง</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="calcModal" role="dialog" aria-modal="true" aria-labelledby="calcTitle">
+    <div class="box">
+      <h3 id="calcTitle">🧮 เครื่องคิดเลข</h3>
+      <div class="calc-display" id="calcDisplay" role="status" aria-live="polite">0</div>
+      <div class="calc-grid" id="calcGrid">
+        <button class="calc-key danger" type="button" data-calc="CLEAR">C</button>
+        <button class="calc-key danger" type="button" data-calc="BACK">⌫</button>
+        <button class="calc-key op" type="button" data-calc="(">(</button>
+        <button class="calc-key op" type="button" data-calc=")">)</button>
+        <button class="calc-key" type="button" data-calc="7">7</button>
+        <button class="calc-key" type="button" data-calc="8">8</button>
+        <button class="calc-key" type="button" data-calc="9">9</button>
+        <button class="calc-key op" type="button" data-calc="÷">÷</button>
+        <button class="calc-key" type="button" data-calc="4">4</button>
+        <button class="calc-key" type="button" data-calc="5">5</button>
+        <button class="calc-key" type="button" data-calc="6">6</button>
+        <button class="calc-key op" type="button" data-calc="×">×</button>
+        <button class="calc-key" type="button" data-calc="1">1</button>
+        <button class="calc-key" type="button" data-calc="2">2</button>
+        <button class="calc-key" type="button" data-calc="3">3</button>
+        <button class="calc-key op" type="button" data-calc="−">−</button>
+        <button class="calc-key" type="button" data-calc="0">0</button>
+        <button class="calc-key" type="button" data-calc=".">.</button>
+        <button class="calc-key equals" type="button" data-calc="EQUALS">=</button>
+        <button class="calc-key op" type="button" data-calc="+">+</button>
+      </div>
+      <div class="row">
+        <button class="btn ghost" id="calcCancelBtn" type="button">ปิด</button>
+        <button class="btn ok" id="calcUseBtn" type="button">✔ ใช้ผลลัพธ์</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+  const board=document.getElementById('board');
+  const hint=document.getElementById('hint');
+  const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const COLORS=[css('--pink'),css('--orange'),css('--yellow'),css('--green'),
+                css('--blue'),css('--purple'),css('--teal'),css('--red'),css('--dark')];
+  let curColor=COLORS[3];
+  const objs=[];
+  let sel=null;
+  const undoBtn=document.getElementById('undoBtn');
+  const history=[];
+  let restoring=false;
+  let cutMode=false,toastTimer=null;
+  let objectClipboard=null;
+
+  function showToast(message){
+    const toast=document.getElementById('toast');
+    toast.textContent=message; toast.classList.add('show');
+    clearTimeout(toastTimer); toastTimer=setTimeout(()=>toast.classList.remove('show'),2400);
+  }
+  function setCutMode(on){
+    cutMode=on;
+    board.classList.toggle('cut-mode',on);
+    document.getElementById('cutBtn').classList.toggle('active',on);
+    document.getElementById('cutBtn').setAttribute('aria-pressed',String(on));
+    if(on) showToast('แตะตำแหน่งบนบาร์ที่ต้องการตัดออกเป็น 2 ชิ้น');
+  }
+
+  /* palette */
+  const cbox=document.getElementById('colors');
+  COLORS.forEach((c,i)=>{
+    const s=document.createElement('button');
+    s.type='button'; s.setAttribute('aria-label',`เลือกสีที่ ${i+1}`);
+    s.className='swatch'+(i===3?' active':''); s.style.background=c;
+    s.addEventListener('click',()=>{curColor=c;
+      document.querySelectorAll('.swatch').forEach(x=>x.classList.remove('active'));
+      s.classList.add('active'); if(sel){ applyColor(sel); commitHistory(); }
+    });
+    cbox.appendChild(s);
+  });
+  function applyColor(rec){
+    if(rec.type==='bar') rec.el.style.background=curColor;
+    else if(rec.type==='num') rec.label.style.color=curColor;
+    else { rec.color=curColor; drawShape(rec); }
+  }
+
+  const rect=()=>board.getBoundingClientRect();
+  const updateHint=()=>{hint.style.display=objs.length?'none':'flex';};
+
+  function numberStyle(el,name,fallback=0){
+    const n=parseFloat(el.style[name]); return Number.isFinite(n)?n:fallback;
+  }
+  function clampObject(rec){
+    const el=rec.el, boardW=board.clientWidth, boardH=board.clientHeight;
+    const w=el.offsetWidth||numberStyle(el,'width'), h=el.offsetHeight||numberStyle(el,'height');
+    el.style.left=Math.max(0,Math.min(numberStyle(el,'left'),Math.max(0,boardW-w)))+'px';
+    el.style.top=Math.max(0,Math.min(numberStyle(el,'top'),Math.max(0,boardH-h)))+'px';
+  }
+
+  /* ---------- selection + floating action bar ---------- */
+  const actions=document.getElementById('actions');
+  function select(rec){ deselect(); sel=rec; rec.el.classList.add('sel'); refreshActions(); }
+  function deselect(){ if(sel){sel.el.classList.remove('sel'); sel=null;} refreshActions(); }
+  function refreshActions(){
+    document.getElementById('copyBtn').disabled=!sel;
+    if(!sel){ actions.classList.remove('show'); return; }
+    actions.classList.add('show');
+    const editable=(sel.type==='bar'||sel.type==='num');
+    document.getElementById('aEdit').style.display=editable?'':'none';
+    document.getElementById('aRot').style.display=(sel.type==='shape')?'':'none';
+  }
+  function removeRec(rec,record=true){ rec.el.remove(); const i=objs.indexOf(rec); if(i>=0)objs.splice(i,1);
+    if(sel===rec){sel=null; refreshActions();} updateHint(); if(record) commitHistory(); }
+
+  function serializeObject(rec){
+    const base={type:rec.type,left:numberStyle(rec.el,'left'),top:numberStyle(rec.el,'top')};
+    if(rec.type==='bar') return {...base,width:numberStyle(rec.el,'width'),height:numberStyle(rec.el,'height'),
+      color:rec.el.style.background,text:rec.label.textContent};
+    if(rec.type==='num') return {...base,color:rec.el.style.color,
+      size:numberStyle(rec.el,'fontSize',34),text:rec.label.textContent};
+    return {...base,kind:rec.kind,len:rec.len,orient:rec.orient,color:rec.color};
+  }
+  function createFromData(o,record=true){
+    if(o.type==='bar') return createBar(o.left,o.top,o.width,o.height,o.color,o.text,record);
+    if(o.type==='num') return createNum(o.left,o.top,o.text,o.color,o.size,record);
+    return createShape(o.kind,o.left,o.top,o.len,o.orient,o.color,record);
+  }
+  function serializeState(){
+    return {
+      grid:board.classList.contains('grid-on'),
+      objects:objs.map(serializeObject)
+    };
+  }
+  function commitHistory(){
+    if(restoring) return;
+    const json=JSON.stringify(serializeState());
+    if(history[history.length-1]!==json) history.push(json);
+    if(history.length>60) history.shift();
+    undoBtn.disabled=history.length<=1;
+  }
+  function restoreState(json){
+    restoring=true; deselect();
+    [...objs].forEach(rec=>removeRec(rec,false));
+    const state=JSON.parse(json);
+    board.classList.toggle('grid-on',state.grid);
+    gridBtn.classList.toggle('off',!state.grid);
+    state.objects.forEach(o=>createFromData(o,false));
+    deselect(); objs.forEach(clampObject); restoring=false; updateHint();
+  }
+  function undo(){
+    if(history.length<=1) return;
+    history.pop(); restoreState(history[history.length-1]);
+    undoBtn.disabled=history.length<=1;
+  }
+  function copySelected(){
+    if(!sel){showToast('กรุณาเลือกวัตถุที่ต้องการคัดลอก'); return;}
+    objectClipboard=JSON.parse(JSON.stringify(serializeObject(sel)));
+    document.getElementById('pasteBtn').disabled=false;
+    showToast('คัดลอกวัตถุแล้ว — กด 📥 หรือ Ctrl+V เพื่อวาง');
+  }
+  function pasteObject(){
+    if(!objectClipboard){showToast('ยังไม่มีวัตถุที่คัดลอก'); return;}
+    setCutMode(false);
+    const data=JSON.parse(JSON.stringify(objectClipboard));
+    data.left+=24; data.top+=24;
+    const rec=createFromData(data,false);
+    clampObject(rec); select(rec); commitHistory();
+    objectClipboard.left=numberStyle(rec.el,'left');
+    objectClipboard.top=numberStyle(rec.el,'top');
+    showToast('วางสำเนาแล้ว');
+  }
+
+  document.getElementById('aEdit').addEventListener('click',()=>{ if(sel) openEditor(sel); });
+  document.getElementById('aRot').addEventListener('click',()=>{
+    if(sel&&sel.type==='shape'){ rotateShape(sel); clampObject(sel); commitHistory(); }
+  });
+  document.getElementById('aDel').addEventListener('click',()=>{ if(sel) removeRec(sel); });
+  document.getElementById('aSmall').addEventListener('click',()=>grow(1/1.18));
+  document.getElementById('aBig').addEventListener('click',()=>grow(1.18));
+  function grow(f){
+    if(!sel) return;
+    if(sel.type==='bar'){
+      const el=sel.el;
+      el.style.width=Math.max(24,Math.min(parseFloat(el.style.width)*f,board.clientWidth))+'px';
+      el.style.height=Math.max(18,Math.min(parseFloat(el.style.height)*f,board.clientHeight))+'px';
+      fitLabel(sel);
+    }else if(sel.type==='num'){
+      sel.el.style.fontSize=Math.max(14,Math.min(parseFloat(sel.el.style.fontSize)*f,160))+'px';
+    }else{
+      const horizontal=(sel.orient==='down'||sel.orient==='up');
+      const minLen=sel.kind==='divider'?18:50;
+      sel.len=Math.max(minLen,Math.min(sel.len*f,horizontal?board.clientWidth:board.clientHeight)); drawShape(sel);
+    }
+    clampObject(sel); commitHistory();
+  }
+
+  function attachResize(rec){
+    const handle=document.createElement('button');
+    handle.type='button'; handle.className='resize-handle';
+    handle.setAttribute('aria-label','ลากเพื่อปรับขนาด');
+    rec.el.appendChild(handle);
+    let active=false,moved=false,sx=0,sy=0,start={},commitTimer=null;
+    handle.addEventListener('pointerdown',e=>{
+      e.stopPropagation(); e.preventDefault(); select(rec);
+      active=true; moved=false; sx=e.clientX; sy=e.clientY;
+      start={
+        width:rec.el.offsetWidth,height:rec.el.offsetHeight,
+        size:numberStyle(rec.el,'fontSize',34),len:rec.len||0,
+        left:numberStyle(rec.el,'left'),top:numberStyle(rec.el,'top')
+      };
+      handle.setPointerCapture(e.pointerId);
+    });
+    handle.addEventListener('pointermove',e=>{
+      if(!active) return;
+      const dx=e.clientX-sx,dy=e.clientY-sy;
+      if(Math.abs(dx)>2||Math.abs(dy)>2) moved=true;
+      if(rec.type==='bar'){
+        rec.el.style.width=Math.max(24,Math.min(start.width+dx,board.clientWidth-start.left))+'px';
+        rec.el.style.height=Math.max(18,Math.min(start.height+dy,board.clientHeight-start.top))+'px';
+        fitLabel(rec);
+      }else if(rec.type==='num'){
+        rec.el.style.fontSize=Math.max(14,Math.min(start.size+(dx+dy)/3,160))+'px';
+      }else{
+        const horizontal=(rec.orient==='down'||rec.orient==='up');
+        const maxLen=horizontal?board.clientWidth-start.left:board.clientHeight-start.top;
+        const minLen=rec.kind==='divider'?18:50;
+        rec.len=Math.max(minLen,Math.min(start.len+(horizontal?dx:dy),maxLen));
+        drawShape(rec);
+      }
+      clampObject(rec);
+      clearTimeout(commitTimer);
+      commitTimer=setTimeout(()=>{ if(moved) commitHistory(); },120);
+    });
+    const finish=()=>{
+      if(!active) return;
+      active=false; clearTimeout(commitTimer); if(moved) commitHistory();
+    };
+    handle.addEventListener('pointerup',finish);
+    handle.addEventListener('pointercancel',finish);
+    handle.addEventListener('lostpointercapture',finish);
+  }
+
+  /* ============ DRAW BARS (drag on empty board) ============ */
+  let drawing=false,sx=0,sy=0,draft=null;
+  board.addEventListener('pointerdown',e=>{
+    if(e.target.closest('.obj')) return;
+    if(cutMode){showToast('กรุณาแตะบนบาร์ หรือกดปุ่ม ✂️ อีกครั้งเพื่อยกเลิก'); return;}
+    deselect(); drawing=true;
+    const r=rect(); sx=e.clientX-r.left; sy=e.clientY-r.top;
+    draft=document.createElement('div'); draft.className='draft';
+    draft.style.cssText=`left:${sx}px;top:${sy}px;width:0;height:0`;
+    board.appendChild(draft); board.setPointerCapture(e.pointerId);
+  });
+  board.addEventListener('pointermove',e=>{
+    if(!drawing) return;
+    const r=rect(); let x=e.clientX-r.left,y=e.clientY-r.top;
+    x=Math.max(0,Math.min(x,r.width)); y=Math.max(0,Math.min(y,r.height));
+    draft.style.left=Math.min(x,sx)+'px'; draft.style.top=Math.min(y,sy)+'px';
+    draft.style.width=Math.abs(x-sx)+'px'; draft.style.height=Math.abs(y-sy)+'px';
+  });
+  board.addEventListener('pointerup',()=>{
+    if(!drawing) return; drawing=false;
+    const w=parseFloat(draft.style.width),h=parseFloat(draft.style.height);
+    const l=parseFloat(draft.style.left),t=parseFloat(draft.style.top);
+    draft.remove(); draft=null;
+    if(w<24||h<18) return;
+    createBar(l,t,w,h,curColor,'');
+  });
+  board.addEventListener('pointercancel',()=>{
+    drawing=false; if(draft){draft.remove(); draft=null;}
+  });
+
+  /* ============ BAR ============ */
+  function createBar(l,t,w,h,color,text,record=true){
+    const el=document.createElement('div'); el.className='obj bar';
+    el.style.cssText=`left:${l}px;top:${t}px;width:${w}px;height:${h}px;background:${color}`;
+    const label=document.createElement('div'); label.className='label'; el.appendChild(label);
+    const rec={el,type:'bar',label}; board.appendChild(el); objs.push(rec);
+    setText(rec,text);
+    attachResize(rec);
+    dragMove(rec,e=>cutMode?cutBar(rec,e):openEditor(rec));
+    updateHint(); select(rec); clampObject(rec); if(record) commitHistory(); return rec;
+  }
+  function setText(rec,t){ rec.label.textContent=t; fitLabel(rec); }
+  function fitLabel(rec){
+    const h=parseFloat(rec.el.style.height),w=parseFloat(rec.el.style.width);
+    let s=Math.min(h*0.5,w*0.42); s=Math.max(13,Math.min(s,60));
+    rec.label.style.fontSize=s+'px';
+  }
+
+  function cutBar(rec,e){
+    const el=rec.el,w=numberStyle(el,'width'),h=numberStyle(el,'height');
+    const l=numberStyle(el,'left'),t=numberStyle(el,'top'),gap=8;
+    const color=el.style.background,text=rec.label.textContent;
+    const screen=el.getBoundingClientRect();
+    if(w>=h){
+      const min=24;
+      if(w<min*2+gap){showToast('บาร์สั้นเกินไปสำหรับการตัด'); return;}
+      const cut=Math.max(min+gap/2,Math.min(e.clientX-screen.left,w-min-gap/2));
+      const firstW=cut-gap/2,secondW=w-cut-gap/2;
+      removeRec(rec,false);
+      createBar(l,t,firstW,h,color,text,false);
+      createBar(l+cut+gap/2,t,secondW,h,color,'',false);
+    }else{
+      const min=18;
+      if(h<min*2+gap){showToast('บาร์สั้นเกินไปสำหรับการตัด'); return;}
+      const cut=Math.max(min+gap/2,Math.min(e.clientY-screen.top,h-min-gap/2));
+      const firstH=cut-gap/2,secondH=h-cut-gap/2;
+      removeRec(rec,false);
+      createBar(l,t,w,firstH,color,text,false);
+      createBar(l,t+cut+gap/2,w,secondH,color,'',false);
+    }
+    commitHistory(); setCutMode(false); showToast('ตัดบาร์เป็น 2 ชิ้นแล้ว');
+  }
+
+  /* ============ FREE NUMBER / THAI TEXT ============ */
+  function createNum(l,t,text,color,size,record=true){
+    const el=document.createElement('div'); el.className='obj numobj';
+    el.style.cssText=`left:${l}px;top:${t}px;font-size:${size||34}px;color:${color}`;
+    const label=document.createElement('span'); label.textContent=text; el.appendChild(label);
+    const rec={el,type:'num',label}; board.appendChild(el); objs.push(rec);
+    attachResize(rec);
+    dragMove(rec,()=>openEditor(rec));
+    updateHint(); select(rec); clampObject(rec); if(record) commitHistory(); return rec;
+  }
+
+  /* ============ BRACE / BRACKET ============ */
+  const DEPTH=26, PAD=7, SW=5;
+  function curly(x1,y1,x2,y2,w,q){
+    let dx=x1-x2,dy=y1-y2,len=Math.hypot(dx,dy)||1; dx/=len; dy/=len;
+    const qx1=x1+q*w*dy, qy1=y1-q*w*dx,
+          qx2=(x1-.25*len*dx)+(1-q)*w*dy, qy2=(y1-.25*len*dy)-(1-q)*w*dx,
+          tx =(x1-.5*len*dx)+w*dy,        ty =(y1-.5*len*dy)-w*dx,
+          qx3=x2+q*w*dy, qy3=y2-q*w*dx,
+          qx4=(x1-.75*len*dx)+(1-q)*w*dy, qy4=(y1-.75*len*dy)-(1-q)*w*dx;
+    return `M${x1} ${y1}Q${qx1} ${qy1} ${qx2} ${qy2}T${tx} ${ty}`
+         + `M${x2} ${y2}Q${qx3} ${qy3} ${qx4} ${qy4}T${tx} ${ty}`;
+  }
+  function squarePath(x1,y1,x2,y2,w){
+    let dx=x1-x2,dy=y1-y2,len=Math.hypot(dx,dy)||1; dx/=len; dy/=len;
+    const px=dy,py=-dx, mx=(x1+x2)/2, my=(y1+y2)/2;
+    return `M${x1} ${y1}L${x1+px*w} ${y1+py*w}L${x2+px*w} ${y2+py*w}L${x2} ${y2}`
+         + `M${mx+px*w} ${my+py*w}L${mx+px*w*1.5} ${my+py*w*1.5}`;
+  }
+  function createShape(kind,l,t,len,orient,color,record=true){
+    const el=document.createElement('div'); el.className='obj shape'+(kind==='ruler'?' ruler':'');
+    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('fill','none'); path.setAttribute('stroke-width',SW);
+    path.setAttribute('stroke-linecap','round'); path.setAttribute('stroke-linejoin','round');
+    svg.appendChild(path); el.appendChild(svg);
+    let rulerLabel=null;
+    if(kind==='ruler'){
+      rulerLabel=document.createElement('div'); rulerLabel.className='ruler-label'; el.appendChild(rulerLabel);
+    }
+    const rec={el,type:'shape',kind,orient,len,color,svg,path,rulerLabel};
+    el.style.left=l+'px'; el.style.top=t+'px';
+    board.appendChild(el); objs.push(rec);
+    drawShape(rec); attachResize(rec); dragMove(rec,null);
+    updateHint(); select(rec); clampObject(rec); if(record) commitHistory(); return rec;
+  }
+  function shapeBox(rec){
+    const horiz=(rec.orient==='down'||rec.orient==='up');
+    return horiz?{w:rec.len,h:DEPTH+PAD*2}:{w:DEPTH+PAD*2,h:rec.len};
+  }
+  function drawShape(rec){
+    const {w,h}=shapeBox(rec);
+    rec.el.style.width=w+'px'; rec.el.style.height=h+'px';
+    rec.svg.setAttribute('width',w); rec.svg.setAttribute('height',h);
+    rec.svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
+    let d;
+    rec.path.setAttribute('stroke-width',rec.kind==='ruler'?2:SW);
+    if(rec.kind==='ruler'){
+      const horizontal=(rec.orient==='down'||rec.orient==='up');
+      const parts=[];
+      if(horizontal){
+        const baseY=h-7; parts.push(`M2 ${baseY}L${w-2} ${baseY}`);
+        for(let x=2;x<=w-2;x+=20){
+          const major=Math.round((x-2)/20)%2===0;
+          parts.push(`M${x} ${baseY}L${x} ${baseY-(major?22:12)}`);
+        }
+        rec.rulerLabel.style.cssText='left:50%;top:2px;transform:translateX(-50%);';
+      }else{
+        const baseX=7; parts.push(`M${baseX} 2L${baseX} ${h-2}`);
+        for(let y=2;y<=h-2;y+=20){
+          const major=Math.round((y-2)/20)%2===0;
+          parts.push(`M${baseX} ${y}L${baseX+(major?22:12)} ${y}`);
+        }
+        rec.rulerLabel.style.cssText='left:20px;top:50%;transform:translate(-50%,-50%) rotate(90deg);';
+      }
+      rec.rulerLabel.textContent=`${(rec.len/40).toFixed(1).replace('.0','')} ช่อง`;
+      d=parts.join('');
+    }else if(rec.kind==='divider'){
+      if(rec.orient==='down'||rec.orient==='up') d=`M${PAD} ${h/2}L${w-PAD} ${h/2}`;
+      else d=`M${w/2} ${PAD}L${w/2} ${h-PAD}`;
+    }else{
+      const gen=(rec.kind==='brace')?((a,b,c,e,f)=>curly(a,b,c,e,f,0.6)):squarePath;
+      if(rec.orient==='down')       d=gen(PAD,PAD, w-PAD,PAD, DEPTH);
+      else if(rec.orient==='up')    d=gen(w-PAD,h-PAD, PAD,h-PAD, DEPTH);
+      else if(rec.orient==='right') d=gen(PAD,h-PAD, PAD,PAD, DEPTH);
+      else                          d=gen(w-PAD,PAD, w-PAD,h-PAD, DEPTH);
+    }
+    rec.path.setAttribute('d',d);
+    rec.path.setAttribute('stroke',rec.color);
+  }
+  function rotateShape(rec){
+    const order=['down','right','up','left'];
+    rec.orient=order[(order.indexOf(rec.orient)+1)%4];
+    drawShape(rec);
+  }
+
+  /* ============ SHARED MOVE (tap = onTap) ============ */
+  function dragMove(rec,onTap){
+    const el=rec.el; let ox,oy,bl,bt,moved,active=false;
+    el.addEventListener('pointerdown',e=>{
+      e.stopPropagation();
+      if(cutMode&&rec.type!=='bar'){
+        showToast('กรรไกรใช้ตัดวัตถุรูปบาร์เท่านั้น'); return;
+      }
+      select(rec); active=true; moved=false;
+      ox=e.clientX; oy=e.clientY; bl=parseFloat(el.style.left); bt=parseFloat(el.style.top);
+      el.setPointerCapture(e.pointerId);
+    });
+    el.addEventListener('pointermove',e=>{
+      if(!active) return;
+      if(cutMode) return;
+      const dx=e.clientX-ox, dy=e.clientY-oy;
+      if(Math.abs(dx)>3||Math.abs(dy)>3) moved=true;
+      el.style.left=Math.max(0,Math.min(bl+dx, Math.max(0,board.clientWidth-el.offsetWidth)))+'px';
+      el.style.top =Math.max(0,Math.min(bt+dy, Math.max(0,board.clientHeight-el.offsetHeight)))+'px';
+    });
+    el.addEventListener('pointerup',e=>{
+      if(active&&!moved&&onTap) onTap(e);
+      else if(active&&moved) commitHistory();
+      active=false;
+    });
+    el.addEventListener('pointercancel',()=>{ if(active){clampObject(rec); active=false;} });
+  }
+
+  /* ============ EDIT MODAL ============ */
+  const modal=document.getElementById('modal'),input=document.getElementById('labelInput');
+  const coarse=window.matchMedia('(pointer:coarse)').matches; // touch device -> use on-screen keyboard
+  input.readOnly=coarse;                                      // stop OS keyboard popping on tablets/phones
+  let editing=null;
+  function openEditor(rec){ editing=rec; input.value=(rec.label.textContent||'');
+    // pick a sensible starting keyboard: Thai if the current text has Thai letters, else numbers
+    showTab(/[฀-๿]/.test(input.value)?'thai':'num');
+    modal.classList.add('show');
+    if(!coarse) setTimeout(()=>{input.focus(); input.select();},60);
+  }
+  function closeEditor(){ modal.classList.remove('show'); editing=null; }
+  function insert(ch){                 // append / edit at end of value
+    if(ch==='DEL') input.value=input.value.slice(0,-1);
+    else if(ch==='CLR') input.value='';
+    else input.value+=ch;
+    if(!coarse) input.focus();
+  }
+  document.getElementById('okBtn').addEventListener('click',()=>{
+    if(editing){ const v=input.value.trim();
+      if(editing.type==='bar'){ setText(editing,v); commitHistory(); }
+      else if(editing.type==='num'){
+        if(v==='') removeRec(editing);
+        else { editing.label.textContent=v; clampObject(editing); commitHistory(); }
+      }
+    }
+    closeEditor();
+  });
+  document.getElementById('cancelBtn').addEventListener('click',closeEditor);
+  input.addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('okBtn').click();});
+  modal.addEventListener('pointerdown',e=>{if(e.target===modal)closeEditor();});
+
+  /* --- build the three on-screen keyboards --- */
+  function mkKey(label,val,cls){
+    const b=document.createElement('button'); b.type='button';
+    b.className='key'+(cls?' '+cls:''); b.textContent=label;
+    b.addEventListener('click',()=>insert(val));
+    return b;
+  }
+  // number pad (millions ... 3 decimals): digits, comma for thousands, dot, backspace, clear
+  const kbNum=document.getElementById('kbNum');
+  [['7','7'],['8','8'],['9','9'],['⌫','DEL','fn'],
+   ['4','4'],['5','5'],['6','6'],['C','CLR','fn'],
+   ['1','1'],['2','2'],['3','3'],['.','.'],
+   [',',','],['0','0'],['000','000'],['−','-']]
+   .forEach(k=>kbNum.appendChild(mkKey(k[0],k[1],k[2])));
+  // Thai on-screen keyboard: consonants + vowels/tone marks (combining marks attach automatically)
+  const kbThai=document.getElementById('kbThai');
+  ('ก ข ฃ ค ฅ ฆ ง จ ฉ ช ซ ฌ ญ ฎ ฏ ฐ ฑ ฒ ณ ด ต ถ ท ธ น บ ป ผ ฝ พ ฟ ภ ม ย ร ล ว ศ ษ ส ห ฬ อ ฮ')
+    .split(' ').forEach(c=>kbThai.appendChild(mkKey(c,c)));
+  ('เ แ โ ใ ไ ะ า ำ ิ ี ึ ื ุ ู ั ็ ่ ้ ๊ ๋ ์ ๆ ฯ')
+    .split(' ').forEach(v=>kbThai.appendChild(mkKey(v,v,'vw')));
+  kbThai.appendChild(mkKey('เว้นวรรค',' ','fn space'));
+  kbThai.appendChild(mkKey('⌫ ลบ','DEL','fn'));
+  kbThai.appendChild(mkKey('ล้าง','CLR','fn'));
+  // quick whole words
+  const kbWord=document.getElementById('kbWord');
+  ['รวม','ทั้งหมด','ผลต่าง','เหลือ','เท่ากับ','คน','บาท','ปี','กิโลกรัม','เมตร','ชิ้น','ผลบวก']
+    .forEach(w=>kbWord.appendChild(mkKey(w,w)));
+
+  /* --- keyboard tabs --- */
+  function showTab(name){
+    document.querySelectorAll('.kbtab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));
+    kbNum.style.display = name==='num' ?'grid':'none';
+    kbThai.style.display= name==='thai'?'flex':'none';
+    kbWord.style.display= name==='word'?'flex':'none';
+  }
+  document.querySelectorAll('.kbtab').forEach(t=>t.addEventListener('click',()=>showTab(t.dataset.tab)));
+
+  /* ============ CALCULATOR ============ */
+  const calcModal=document.getElementById('calcModal');
+  const calcDisplay=document.getElementById('calcDisplay');
+  let calcExpr='',calcTarget=null,calcHasResult=false;
+  function renderCalc(){ calcDisplay.textContent=calcExpr||'0'; }
+  function calculateExpression(){
+    if(!calcExpr) return null;
+    const source=calcExpr.replaceAll('×','*').replaceAll('÷','/').replaceAll('−','-');
+    if(!/^[0-9+\-*/().\s]+$/.test(source)) return null;
+    try{
+      const value=Function(`"use strict"; return (${source})`)();
+      if(!Number.isFinite(value)) throw new Error('invalid result');
+      const rounded=Math.round((value+Number.EPSILON)*1e12)/1e12;
+      calcExpr=String(rounded); calcHasResult=true; renderCalc(); return calcExpr;
+    }catch(err){
+      calcExpr=''; calcHasResult=false; calcDisplay.textContent='คำนวณไม่ได้'; return null;
+    }
+  }
+  function calcPress(key){
+    if(key==='CLEAR'){calcExpr=''; calcHasResult=false; renderCalc(); return;}
+    if(key==='BACK'){calcExpr=calcExpr.slice(0,-1); calcHasResult=false; renderCalc(); return;}
+    if(key==='EQUALS'){calculateExpression(); return;}
+    const isOperator=['+','−','×','÷'].includes(key);
+    if(calcHasResult&&!isOperator){calcExpr='';}
+    calcHasResult=false; calcExpr+=key; renderCalc();
+  }
+  function openCalculator(){
+    calcTarget=sel; calcExpr=''; calcHasResult=false; renderCalc(); calcModal.classList.add('show');
+  }
+  function closeCalculator(){calcModal.classList.remove('show'); calcTarget=null;}
+  document.querySelectorAll('[data-calc]').forEach(key=>{
+    key.addEventListener('click',()=>calcPress(key.dataset.calc));
+  });
+  document.getElementById('calcCancelBtn').addEventListener('click',closeCalculator);
+  document.getElementById('calcUseBtn').addEventListener('click',()=>{
+    const result=calculateExpression(); if(result===null) return;
+    if(calcTarget&&objs.includes(calcTarget)){
+      if(calcTarget.type==='bar') setText(calcTarget,result);
+      else if(calcTarget.type==='num'){calcTarget.label.textContent=result; clampObject(calcTarget);}
+      else {const [l,t]=centerPos(80,40); createNum(l,t,result,curColor,34,false);}
+      commitHistory();
+    }else{
+      const [l,t]=centerPos(80,40); createNum(l,t,result,curColor,34);
+    }
+    closeCalculator();
+  });
+  calcModal.addEventListener('pointerdown',e=>{if(e.target===calcModal)closeCalculator();});
+
+  /* ============ TOOLBAR ============ */
+  function centerPos(w,h){ const r=rect(); return [r.width/2-w/2, r.height/2-h/2]; }
+  document.getElementById('numBtn').addEventListener('click',()=>{
+    setCutMode(false);
+    const [l,t]=centerPos(50,40); const rec=createNum(l,t,'12',curColor); openEditor(rec);
+  });
+  document.getElementById('braceBtn').addEventListener('click',()=>{
+    setCutMode(false);
+    const [l,t]=centerPos(200,DEPTH); createShape('brace',l,t,200,'down',curColor);
+  });
+  document.getElementById('bracketBtn').addEventListener('click',()=>{
+    setCutMode(false);
+    const [l,t]=centerPos(200,DEPTH); createShape('bracket',l,t,200,'down',curColor);
+  });
+  document.getElementById('dividerBtn').addEventListener('click',()=>{
+    setCutMode(false);
+    if(sel&&sel.type==='bar'){
+      const bar=sel.el;
+      const l=numberStyle(bar,'left')+numberStyle(bar,'width')/2-(DEPTH+PAD*2)/2;
+      createShape('divider',l,numberStyle(bar,'top'),numberStyle(bar,'height'),'right',COLORS[8]);
+    }else{
+      const [l,t]=centerPos(DEPTH+PAD*2,160); createShape('divider',l,t,160,'right',curColor);
+    }
+  });
+  document.getElementById('calcBtn').addEventListener('click',()=>{setCutMode(false); openCalculator();});
+  document.getElementById('cutBtn').addEventListener('click',()=>setCutMode(!cutMode));
+  document.getElementById('rulerBtn').addEventListener('click',()=>{
+    setCutMode(false);
+    const [l,t]=centerPos(200,DEPTH+PAD*2); createShape('ruler',l,t,200,'down',COLORS[8]);
+  });
+  document.getElementById('copyBtn').addEventListener('click',copySelected);
+  document.getElementById('pasteBtn').addEventListener('click',pasteObject);
+  undoBtn.addEventListener('click',undo);
+  document.getElementById('clearBtn').addEventListener('click',()=>{
+    if(objs.length && !confirm('ล้างทั้งหมด?')) return;
+    setCutMode(false); [...objs].forEach(rec=>removeRec(rec,false)); commitHistory();
+  });
+  const gridBtn=document.getElementById('gridBtn');
+  gridBtn.addEventListener('click',()=>{
+    board.classList.toggle('grid-on');
+    gridBtn.classList.toggle('off',!board.classList.contains('grid-on'));
+    commitHistory();
+  });
+
+  board.addEventListener('pointerdown',e=>{ if(!e.target.closest('.obj')) deselect(); },true);
+  document.addEventListener('copy',e=>{
+    if(calcModal.classList.contains('show')||modal.classList.contains('show')||!sel) return;
+    if(e.clipboardData) e.clipboardData.setData('text/plain','วัตถุจากเครื่องมือวาดบาร์โมเดล');
+    e.preventDefault(); copySelected();
+  });
+  document.addEventListener('paste',e=>{
+    if(calcModal.classList.contains('show')||modal.classList.contains('show')||!objectClipboard) return;
+    e.preventDefault(); pasteObject();
+  });
+  document.addEventListener('keydown',e=>{
+    if(calcModal.classList.contains('show')){
+      if(e.key==='Escape'){e.preventDefault(); closeCalculator();}
+      else if(e.key==='Enter'||e.key==='='){e.preventDefault(); calcPress('EQUALS');}
+      else if(e.key==='Backspace'){e.preventDefault(); calcPress('BACK');}
+      else if(e.key==='Delete'){e.preventDefault(); calcPress('CLEAR');}
+      else if(/^[0-9.+*/()\-]$/.test(e.key)){
+        e.preventDefault(); calcPress(e.key==='*'?'×':e.key==='/'?'÷':e.key==='-'?'−':e.key);
+      }
+      return;
+    }
+    if(modal.classList.contains('show')){
+      if(e.key==='Escape'){e.preventDefault(); closeEditor();}
+      return;
+    }
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){
+      e.preventDefault(); undo(); return;
+    }
+    if(e.key==='Escape'){if(cutMode)setCutMode(false); deselect(); return;}
+    if((e.key==='Delete'||e.key==='Backspace')&&sel){e.preventDefault(); removeRec(sel); return;}
+    if(sel&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){
+      e.preventDefault(); const step=e.shiftKey?10:2;
+      const dx=e.key==='ArrowLeft'?-step:e.key==='ArrowRight'?step:0;
+      const dy=e.key==='ArrowUp'?-step:e.key==='ArrowDown'?step:0;
+      sel.el.style.left=(numberStyle(sel.el,'left')+dx)+'px';
+      sel.el.style.top=(numberStyle(sel.el,'top')+dy)+'px';
+      clampObject(sel); commitHistory();
+    }
+  });
+
+  if('ResizeObserver' in window) new ResizeObserver(()=>objs.forEach(clampObject)).observe(board);
+  else window.addEventListener('resize',()=>objs.forEach(clampObject));
+  updateHint(); commitHistory();
+})();
+</script>
+</body>
+</html>
