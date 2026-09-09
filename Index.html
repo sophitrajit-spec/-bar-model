@@ -59,6 +59,9 @@
   .btn.calc{background:#5667d8;}
   .btn.cut{background:#e84f73;}
   .btn.cut.active{background:#b81845; outline:4px solid #ffc2d2;}
+  .btn.pen{background:#ff6f3c;}
+  .btn.pen.active{background:#c94a1b; outline:4px solid #ffd0b0;}
+  .btn.pen-clear{background:#8a97ac;}
   .btn.ruler{background:#bd8416;}
   .btn.copy{background:#607d9f;}
   .btn.paste{background:#3979b9;}
@@ -165,6 +168,9 @@
   .shape>.resize-handle{right:0; bottom:0;}
   .board.cut-mode{cursor:crosshair; box-shadow:0 0 0 5px rgba(232,79,115,.3),0 8px 22px rgba(90,103,133,.15);}
   .board.cut-mode .bar{cursor:crosshair;}
+  .scribble-canvas{position:absolute; inset:0; z-index:6; touch-action:none; pointer-events:none;}
+  .board.pen-mode{box-shadow:0 0 0 5px rgba(255,111,60,.32),0 8px 22px rgba(90,103,133,.15);}
+  .board.pen-mode .scribble-canvas{pointer-events:auto; cursor:crosshair;}
   .toast{
     position:fixed; left:50%; top:88px; transform:translateX(-50%) translateY(-12px);
     max-width:min(560px,90vw); padding:10px 16px; border-radius:14px;
@@ -278,6 +284,8 @@
     <button class="btn divider" id="dividerBtn" type="button">┃ เส้นแบ่ง</button>
     <button class="btn calc"    id="calcBtn" type="button">🧮 เครื่องคิดเลข</button>
     <button class="btn cut"     id="cutBtn" type="button">✂️ ตัด</button>
+    <button class="btn pen"     id="penBtn" type="button">🖊️ กระดาษทด</button>
+    <button class="btn pen-clear" id="penClearBtn" type="button" aria-label="ลบรอยขีดเขียน" title="ลบรอยขีดเขียน">🧽</button>
     <button class="btn ruler"   id="rulerBtn" type="button">📏 ไม้บรรทัด</button>
     <button class="btn copy"    id="copyBtn" type="button" aria-label="คัดลอกวัตถุ" title="คัดลอก (Ctrl+C)" disabled>📋</button>
     <button class="btn paste"   id="pasteBtn" type="button" aria-label="วางวัตถุ" title="วาง (Ctrl+V)" disabled>📥</button>
@@ -293,6 +301,7 @@
         <div>ลากนิ้ว/เมาส์บนพื้นที่นี้ เพื่อวาดสี่เหลี่ยม</div>
         <div class="small">แตะแท่งเพื่อพิมพ์เลข/คำไทย · ใช้จุดจับมุมขวาล่างเพื่อปรับขนาด · ปุ่ม ┃ ใช้แบ่งช่อง</div>
       </div>
+      <canvas class="scribble-canvas" id="scribbleCanvas" aria-hidden="true"></canvas>
     </div>
   </div>
 
@@ -373,12 +382,12 @@
   const undoBtn=document.getElementById('undoBtn');
   let history=[];
   let restoring=false;
-  let cutMode=false,toastTimer=null;
+  let cutMode=false,penMode=false,toastTimer=null;
   let objectClipboard=null;
 
   /* ---------- multi-page (หลายหน้า) ---------- */
   function emptyBoardJson(){ return JSON.stringify({grid:true,objects:[]}); }
-  function makeEmptyPage(){ return {problemText:'',problemImage:null,history:[emptyBoardJson()]}; }
+  function makeEmptyPage(){ return {problemText:'',problemImage:null,scribble:null,history:[emptyBoardJson()]}; }
   const pages=[makeEmptyPage()];
   let currentPageIndex=0;
   const pageTabsEl=document.getElementById('pageTabs');
@@ -416,15 +425,18 @@
     const p=pages[currentPageIndex]; if(!p) return;
     p.history=history.slice();
     p.problemText=problemInput.value;
+    p.scribble=scribbleCanvas.toDataURL('image/png');
   }
   function loadPageIntoBoard(idx){
     const p=pages[idx];
     history=p.history.slice();
-    setCutMode(false); deselect();
+    setCutMode(false); setPenMode(false); deselect();
     restoreState(history[history.length-1]);
     undoBtn.disabled=history.length<=1;
     problemInput.value=p.problemText||'';
     renderProblemImage(p.problemImage);
+    fitScribbleCanvas(false);
+    loadScribbleImage(p.scribble);
   }
   function switchToPage(idx){
     if(idx===currentPageIndex||idx<0||idx>=pages.length) return;
@@ -508,11 +520,87 @@
   }
   function setCutMode(on){
     cutMode=on;
+    if(on&&penMode) setPenMode(false);
     board.classList.toggle('cut-mode',on);
     document.getElementById('cutBtn').classList.toggle('active',on);
     document.getElementById('cutBtn').setAttribute('aria-pressed',String(on));
     if(on) showToast('แตะตำแหน่งบนบาร์ที่ต้องการตัดออกเป็น 2 ชิ้น');
   }
+
+  /* ---------- pen mode: กระดาษทด (freehand scribble) ---------- */
+  const scribbleCanvas=document.getElementById('scribbleCanvas');
+  const scribbleCtx=scribbleCanvas.getContext('2d');
+  const penBtn=document.getElementById('penBtn');
+  let penDrawing=false;
+
+  function fitScribbleCanvas(preserve=true){
+    const dpr=window.devicePixelRatio||1;
+    const w=board.clientWidth,h=board.clientHeight;
+    let prevData=null;
+    if(preserve&&scribbleCanvas.width&&scribbleCanvas.height){
+      try{ prevData=scribbleCanvas.toDataURL('image/png'); }catch(err){ prevData=null; }
+    }
+    scribbleCanvas.width=Math.max(1,Math.round(w*dpr));
+    scribbleCanvas.height=Math.max(1,Math.round(h*dpr));
+    scribbleCanvas.style.width=w+'px'; scribbleCanvas.style.height=h+'px';
+    scribbleCtx.setTransform(dpr,0,0,dpr,0,0);
+    scribbleCtx.lineCap='round'; scribbleCtx.lineJoin='round';
+    if(prevData){
+      const img=new Image();
+      img.onload=()=>scribbleCtx.drawImage(img,0,0,w,h);
+      img.src=prevData;
+    }
+  }
+  function clearScribbleCanvas(){
+    scribbleCtx.save(); scribbleCtx.setTransform(1,0,0,1,0,0);
+    scribbleCtx.clearRect(0,0,scribbleCanvas.width,scribbleCanvas.height);
+    scribbleCtx.restore();
+  }
+  function loadScribbleImage(dataUrl){
+    clearScribbleCanvas();
+    if(!dataUrl) return;
+    const img=new Image();
+    img.onload=()=>scribbleCtx.drawImage(img,0,0,board.clientWidth,board.clientHeight);
+    img.src=dataUrl;
+  }
+  function saveScribbleForCurrentPage(){
+    if(!pages[currentPageIndex]) return;
+    pages[currentPageIndex].scribble=scribbleCanvas.toDataURL('image/png');
+  }
+  function setPenMode(on){
+    penMode=on;
+    if(on&&cutMode) setCutMode(false);
+    board.classList.toggle('pen-mode',on);
+    penBtn.classList.toggle('active',on);
+    penBtn.setAttribute('aria-pressed',String(on));
+    if(on){ deselect(); showToast('โหมดกระดาษทด: ลากนิ้ว/เมาส์เพื่อขีดเขียนอิสระ'); }
+  }
+  function penPos(e){
+    const r=scribbleCanvas.getBoundingClientRect();
+    return [e.clientX-r.left,e.clientY-r.top];
+  }
+  scribbleCanvas.addEventListener('pointerdown',e=>{
+    if(!penMode) return;
+    e.stopPropagation();
+    penDrawing=true;
+    const [x,y]=penPos(e);
+    scribbleCtx.strokeStyle=curColor; scribbleCtx.lineWidth=4;
+    scribbleCtx.beginPath(); scribbleCtx.moveTo(x,y); scribbleCtx.lineTo(x,y); scribbleCtx.stroke();
+    scribbleCanvas.setPointerCapture(e.pointerId);
+  });
+  scribbleCanvas.addEventListener('pointermove',e=>{
+    if(!penDrawing) return;
+    e.stopPropagation();
+    const [x,y]=penPos(e);
+    scribbleCtx.lineTo(x,y); scribbleCtx.stroke();
+  });
+  function endPenStroke(){
+    if(!penDrawing) return;
+    penDrawing=false;
+    saveScribbleForCurrentPage();
+  }
+  scribbleCanvas.addEventListener('pointerup',endPenStroke);
+  scribbleCanvas.addEventListener('pointercancel',endPenStroke);
 
   /* palette */
   const cbox=document.getElementById('colors');
@@ -608,7 +696,7 @@
   }
   function pasteObject(){
     if(!objectClipboard){showToast('ยังไม่มีวัตถุที่คัดลอก'); return;}
-    setCutMode(false);
+    setCutMode(false); setPenMode(false);
     const data=JSON.parse(JSON.stringify(objectClipboard));
     data.left+=24; data.top+=24;
     const rec=createFromData(data,false);
@@ -1005,19 +1093,19 @@
   /* ============ TOOLBAR ============ */
   function centerPos(w,h){ const r=rect(); return [r.width/2-w/2, r.height/2-h/2]; }
   document.getElementById('numBtn').addEventListener('click',()=>{
-    setCutMode(false);
+    setCutMode(false); setPenMode(false);
     const [l,t]=centerPos(50,40); const rec=createNum(l,t,'12',curColor); openEditor(rec);
   });
   document.getElementById('braceBtn').addEventListener('click',()=>{
-    setCutMode(false);
+    setCutMode(false); setPenMode(false);
     const [l,t]=centerPos(200,DEPTH); createShape('brace',l,t,200,'down',curColor);
   });
   document.getElementById('bracketBtn').addEventListener('click',()=>{
-    setCutMode(false);
+    setCutMode(false); setPenMode(false);
     const [l,t]=centerPos(200,DEPTH); createShape('bracket',l,t,200,'down',curColor);
   });
   document.getElementById('dividerBtn').addEventListener('click',()=>{
-    setCutMode(false);
+    setCutMode(false); setPenMode(false);
     if(sel&&sel.type==='bar'){
       const bar=sel.el;
       const l=numberStyle(bar,'left')+numberStyle(bar,'width')/2-(DEPTH+PAD*2)/2;
@@ -1026,10 +1114,15 @@
       const [l,t]=centerPos(DEPTH+PAD*2,160); createShape('divider',l,t,160,'right',curColor);
     }
   });
-  document.getElementById('calcBtn').addEventListener('click',()=>{setCutMode(false); openCalculator();});
+  document.getElementById('calcBtn').addEventListener('click',()=>{setCutMode(false); setPenMode(false); openCalculator();});
   document.getElementById('cutBtn').addEventListener('click',()=>setCutMode(!cutMode));
+  document.getElementById('penBtn').addEventListener('click',()=>setPenMode(!penMode));
+  document.getElementById('penClearBtn').addEventListener('click',()=>{
+    if(!confirm('ลบรอยขีดเขียนทั้งหมดในหน้านี้?')) return;
+    clearScribbleCanvas(); pages[currentPageIndex].scribble=null;
+  });
   document.getElementById('rulerBtn').addEventListener('click',()=>{
-    setCutMode(false);
+    setCutMode(false); setPenMode(false);
     const [l,t]=centerPos(200,DEPTH+PAD*2); createShape('ruler',l,t,200,'down',COLORS[8]);
   });
   document.getElementById('copyBtn').addEventListener('click',copySelected);
@@ -1037,7 +1130,7 @@
   undoBtn.addEventListener('click',undo);
   document.getElementById('clearBtn').addEventListener('click',()=>{
     if(objs.length && !confirm('ล้างทั้งหมด?')) return;
-    setCutMode(false); [...objs].forEach(rec=>removeRec(rec,false)); commitHistory();
+    setCutMode(false); setPenMode(false); [...objs].forEach(rec=>removeRec(rec,false)); commitHistory();
   });
   const gridBtn=document.getElementById('gridBtn');
   gridBtn.addEventListener('click',()=>{
@@ -1090,7 +1183,7 @@
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){
       e.preventDefault(); undo(); return;
     }
-    if(e.key==='Escape'){if(cutMode)setCutMode(false); deselect(); return;}
+    if(e.key==='Escape'){if(cutMode)setCutMode(false); if(penMode)setPenMode(false); deselect(); return;}
     if((e.key==='Delete'||e.key==='Backspace')&&sel){e.preventDefault(); removeRec(sel); return;}
     if(sel&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){
       e.preventDefault(); const step=e.shiftKey?10:2;
@@ -1102,10 +1195,11 @@
     }
   });
 
-  if('ResizeObserver' in window) new ResizeObserver(()=>objs.forEach(clampObject)).observe(board);
-  else window.addEventListener('resize',()=>objs.forEach(clampObject));
+  if('ResizeObserver' in window) new ResizeObserver(()=>{ objs.forEach(clampObject); fitScribbleCanvas(); }).observe(board);
+  else window.addEventListener('resize',()=>{ objs.forEach(clampObject); fitScribbleCanvas(); });
   history=pages[0].history.slice();
   undoBtn.disabled=history.length<=1;
+  fitScribbleCanvas();
   updateHint(); renderTabs();
 })();
 </script>
