@@ -67,6 +67,44 @@
   .btn.grid{background:#8aa0bf;}
   .btn.grid.off{background:#c4cdda;}
 
+  /* ---------- page tabs ---------- */
+  .page-bar{flex:none; display:flex; align-items:center; gap:6px; padding:2px 10px 4px;}
+  .page-tabs{display:flex; gap:6px; overflow-x:auto; flex:1; min-width:0; padding-bottom:2px;}
+  .page-tabs::-webkit-scrollbar{height:5px;}
+  .page-tab{display:flex; align-items:center; gap:2px; background:#fff; border-radius:12px;
+    border:2px solid var(--line); flex-shrink:0;}
+  .page-tab.active{border-color:var(--blue); background:#eaf2ff;}
+  .page-tab-btn{border:none; background:transparent; font-family:inherit; font-weight:700;
+    font-size:13px; color:var(--ink); padding:7px 6px 7px 12px; cursor:pointer; border-radius:10px;
+    white-space:nowrap;}
+  .page-tab.active .page-tab-btn{color:#1c63b8;}
+  .page-tab-del{border:none; background:transparent; color:#c0475f; font-weight:800; font-size:15px;
+    cursor:pointer; padding:4px 9px 4px 2px; line-height:1;}
+  .btn.page-add{background:#3d9970; flex-shrink:0;}
+
+  /* ---------- problem (โจทย์) panel ---------- */
+  .problem-panel{flex:none; margin:0 10px 6px; background:#fff; border-radius:14px;
+    box-shadow:0 3px 10px rgba(90,103,133,.12); border:2px solid #fff; overflow:hidden;}
+  .problem-toggle{width:100%; border:none; background:#fef9ef; font-family:inherit; font-weight:800;
+    font-size:14px; color:var(--ink); padding:8px 12px; display:flex; align-items:center;
+    justify-content:space-between; cursor:pointer;}
+  .problem-toggle .chev{transition:transform .15s; display:inline-block;}
+  .problem-panel.collapsed .problem-body{display:none;}
+  .problem-panel.collapsed .chev{transform:rotate(-90deg);}
+  .problem-body{padding:8px 12px 12px; max-height:200px; overflow-y:auto;}
+  .problem-textarea{width:100%; font-family:inherit; font-size:15px; color:var(--ink);
+    border:2px solid var(--line); border-radius:10px; padding:8px 10px; resize:vertical;
+    min-height:42px; box-sizing:border-box;}
+  .problem-textarea:focus{outline:none; border-color:var(--blue);}
+  .problem-image-row{display:flex; align-items:center; gap:10px; margin-top:8px; flex-wrap:wrap;}
+  .btn.problem-attach{background:#3d6ea5; padding:8px 12px; font-size:13.5px;}
+  .problem-img-wrap{position:relative; display:flex; align-items:center;}
+  .problem-img{max-height:76px; max-width:160px; border-radius:8px; border:2px solid var(--line);
+    object-fit:contain; background:#f7f9fc; display:block;}
+  .problem-img-remove{position:absolute; top:-8px; right:-8px; width:24px; height:24px;
+    border-radius:50%; border:2px solid #fff; background:var(--red); color:#fff; font-size:12px;
+    cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;}
+
   .board-wrap{flex:1 1 auto; padding:0 10px 10px; min-height:0;}
   .board{
     position:relative; width:100%; height:100%; background:#fff;
@@ -197,6 +235,28 @@
 <body>
   <header><h1>✏️ วาดบาร์โมเดล</h1></header>
 
+  <div class="page-bar">
+    <div class="page-tabs" id="pageTabs" role="tablist" aria-label="รายการหน้า"></div>
+    <button class="btn page-add" id="addPageBtn" type="button">➕ หน้าใหม่</button>
+  </div>
+
+  <div class="problem-panel" id="problemPanel">
+    <button class="problem-toggle" id="problemToggle" type="button" aria-expanded="true" aria-controls="problemBody">
+      <span>📋 โจทย์ประจำหน้านี้</span><span class="chev">▾</span>
+    </button>
+    <div class="problem-body" id="problemBody">
+      <textarea id="problemInput" class="problem-textarea" placeholder="พิมพ์โจทย์ที่นี่..." rows="2"></textarea>
+      <div class="problem-image-row">
+        <button class="btn problem-attach" id="attachImgBtn" type="button">📎 แนบรูปโจทย์</button>
+        <input type="file" id="problemImgInput" accept="image/*" hidden>
+        <div class="problem-img-wrap" id="problemImgWrap" style="display:none">
+          <img id="problemImgPreview" class="problem-img" alt="รูปโจทย์">
+          <button class="problem-img-remove" id="problemImgRemove" type="button" aria-label="ลบรูปโจทย์">🗑️</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="toolbar">
     <div class="colors" id="colors" role="group" aria-label="เลือกสี"></div>
     <button class="btn num"     id="numBtn" type="button">🔤 เลข/คำ</button>
@@ -298,10 +358,91 @@
   const objs=[];
   let sel=null;
   const undoBtn=document.getElementById('undoBtn');
-  const history=[];
+  let history=[];
   let restoring=false;
   let cutMode=false,toastTimer=null;
   let objectClipboard=null;
+
+  /* ---------- multi-page (หลายหน้า) ---------- */
+  function emptyBoardJson(){ return JSON.stringify({grid:true,objects:[]}); }
+  function makeEmptyPage(){ return {problemText:'',problemImage:null,history:[emptyBoardJson()]}; }
+  const pages=[makeEmptyPage()];
+  let currentPageIndex=0;
+  const pageTabsEl=document.getElementById('pageTabs');
+  const problemInput=document.getElementById('problemInput');
+  const problemImgWrap=document.getElementById('problemImgWrap');
+  const problemImgPreview=document.getElementById('problemImgPreview');
+  const problemImgInput=document.getElementById('problemImgInput');
+
+  function renderTabs(){
+    pageTabsEl.innerHTML='';
+    pages.forEach((p,i)=>{
+      const tab=document.createElement('div');
+      tab.className='page-tab'+(i===currentPageIndex?' active':'');
+      tab.setAttribute('role','tab');
+      const btn=document.createElement('button');
+      btn.type='button'; btn.className='page-tab-btn'; btn.textContent=`หน้า ${i+1}`;
+      btn.setAttribute('aria-selected',String(i===currentPageIndex));
+      btn.addEventListener('click',()=>switchToPage(i));
+      tab.appendChild(btn);
+      if(pages.length>1){
+        const del=document.createElement('button');
+        del.type='button'; del.className='page-tab-del'; del.textContent='×';
+        del.setAttribute('aria-label',`ลบหน้า ${i+1}`);
+        del.addEventListener('click',e=>{ e.stopPropagation(); deletePage(i); });
+        tab.appendChild(del);
+      }
+      pageTabsEl.appendChild(tab);
+    });
+  }
+  function renderProblemImage(dataUrl){
+    if(dataUrl){ problemImgPreview.src=dataUrl; problemImgWrap.style.display='flex'; }
+    else{ problemImgPreview.src=''; problemImgWrap.style.display='none'; }
+  }
+  function saveCurrentPageState(){
+    const p=pages[currentPageIndex]; if(!p) return;
+    p.history=history.slice();
+    p.problemText=problemInput.value;
+  }
+  function loadPageIntoBoard(idx){
+    const p=pages[idx];
+    history=p.history.slice();
+    setCutMode(false); deselect();
+    restoreState(history[history.length-1]);
+    undoBtn.disabled=history.length<=1;
+    problemInput.value=p.problemText||'';
+    renderProblemImage(p.problemImage);
+  }
+  function switchToPage(idx){
+    if(idx===currentPageIndex||idx<0||idx>=pages.length) return;
+    saveCurrentPageState();
+    currentPageIndex=idx;
+    loadPageIntoBoard(idx);
+    renderTabs();
+  }
+  function addPage(){
+    saveCurrentPageState();
+    pages.push(makeEmptyPage());
+    currentPageIndex=pages.length-1;
+    loadPageIntoBoard(currentPageIndex);
+    renderTabs();
+    showToast('เพิ่มหน้าใหม่แล้ว');
+  }
+  function deletePage(idx){
+    if(pages.length<=1){ showToast('ต้องมีอย่างน้อย 1 หน้า'); return; }
+    if(!confirm(`ลบหน้าที่ ${idx+1}?`)) return;
+    pages.splice(idx,1);
+    if(currentPageIndex>idx) currentPageIndex--;
+    else if(currentPageIndex===idx) currentPageIndex=Math.min(idx,pages.length-1);
+    loadPageIntoBoard(currentPageIndex);
+    renderTabs();
+  }
+  function attachProblemImage(file){
+    if(!file||!file.type.startsWith('image/')) return;
+    const reader=new FileReader();
+    reader.onload=()=>{ pages[currentPageIndex].problemImage=reader.result; renderProblemImage(reader.result); };
+    reader.readAsDataURL(file);
+  }
 
   function showToast(message){
     const toast=document.getElementById('toast');
@@ -848,6 +989,21 @@
     commitHistory();
   });
 
+  document.getElementById('addPageBtn').addEventListener('click',addPage);
+  const problemPanel=document.getElementById('problemPanel');
+  document.getElementById('problemToggle').addEventListener('click',()=>{
+    const collapsed=problemPanel.classList.toggle('collapsed');
+    document.getElementById('problemToggle').setAttribute('aria-expanded',String(!collapsed));
+  });
+  document.getElementById('attachImgBtn').addEventListener('click',()=>problemImgInput.click());
+  problemImgInput.addEventListener('change',()=>{
+    if(problemImgInput.files&&problemImgInput.files[0]) attachProblemImage(problemImgInput.files[0]);
+    problemImgInput.value='';
+  });
+  document.getElementById('problemImgRemove').addEventListener('click',()=>{
+    pages[currentPageIndex].problemImage=null; renderProblemImage(null);
+  });
+
   board.addEventListener('pointerdown',e=>{ if(!e.target.closest('.obj')) deselect(); },true);
   document.addEventListener('copy',e=>{
     if(calcModal.classList.contains('show')||modal.classList.contains('show')||!sel) return;
@@ -890,7 +1046,9 @@
 
   if('ResizeObserver' in window) new ResizeObserver(()=>objs.forEach(clampObject)).observe(board);
   else window.addEventListener('resize',()=>objs.forEach(clampObject));
-  updateHint(); commitHistory();
+  history=pages[0].history.slice();
+  undoBtn.disabled=history.length<=1;
+  updateHint(); renderTabs();
 })();
 </script>
 </body>
