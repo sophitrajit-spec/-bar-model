@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>วาดบาร์โมเดล ✏️</title>
+<title>Bar Model Studio</title>
 <style>
   :root{
     --pink:#ff5d8f; --orange:#ff9f1c; --yellow:#ffd23f; --green:#3ec46d;
@@ -14,19 +14,21 @@
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0; height:100%; overflow:hidden;}
   body{
-    font-family:"Sarabun","Segoe UI",Tahoma,sans-serif; color:var(--ink);
+    font-family:Inter,"Segoe UI Variable","Segoe UI",Tahoma,sans-serif; color:var(--ink);
     background:linear-gradient(180deg,#eafaff 0%,#f4fff0 45%,#fff6fb 100%);
     display:flex; flex-direction:column; height:100dvh; touch-action:none; user-select:none;
     overscroll-behavior:none;
   }
   input,textarea{user-select:text; -webkit-user-select:text;}
 
-  header{flex:none; text-align:center; padding:6px 10px 2px;}
+  header{flex:none; text-align:center; padding:7px 10px 5px;}
   header h1{
-    margin:0; font-size:clamp(17px,4.4vw,25px); font-weight:800;
+    margin:0; font-size:clamp(18px,4.4vw,27px); font-weight:850; letter-spacing:.02em;
     background:linear-gradient(90deg,var(--green),var(--orange),var(--pink),var(--purple));
     -webkit-background-clip:text; background-clip:text; color:transparent;
   }
+  .developer-credit{margin-top:1px; color:#74809b; font-size:clamp(10px,2.4vw,12px);
+    font-weight:650; letter-spacing:.02em;}
 
   .workspace{flex:1 1 auto; min-height:0; display:flex; gap:8px; padding:0 10px 10px;}
   .toolbar{
@@ -103,9 +105,10 @@
     color:var(--ink); border:2px solid var(--line); border-radius:10px; padding:10px 12px; resize:vertical;
     min-height:52px; box-sizing:border-box; text-align:center;}
   .problem-textarea:focus{outline:none; border-color:var(--blue);}
-  .problem-image-row{display:flex; align-items:center; justify-content:center; gap:10px; margin-top:8px; flex-wrap:wrap;}
+  .problem-tools-row{display:flex; align-items:center; justify-content:center; gap:8px; margin-top:8px;
+    flex-wrap:nowrap; overflow-x:auto; padding:2px 0 4px; scrollbar-width:thin;}
+  .problem-tools-row>*{flex:none;}
   .btn.problem-attach{background:#3d6ea5; padding:8px 12px; font-size:13.5px;}
-  .problem-sample-row{display:flex; align-items:center; justify-content:center; gap:8px; margin-top:8px; flex-wrap:wrap;}
   .sample-select{font-family:inherit; font-size:13.5px; font-weight:700; color:var(--ink);
     border:2px solid var(--line); border-radius:10px; padding:8px 8px; background:#fff; cursor:pointer;}
   .btn.sample-btn{background:#e08a1f; padding:8px 12px; font-size:13.5px;}
@@ -260,7 +263,10 @@
 </style>
 </head>
 <body>
-  <header><h1>✏️ วาดบาร์โมเดล</h1></header>
+  <header>
+    <h1>✏️ Bar Model Studio</h1>
+    <div class="developer-credit">System Developer: ครูโสภิตรา จิตชู</div>
+  </header>
 
   <div class="page-bar">
     <div class="page-tabs" id="pageTabs" role="tablist" aria-label="รายการหน้า"></div>
@@ -273,7 +279,7 @@
     </button>
     <div class="problem-body" id="problemBody">
       <textarea id="problemInput" class="problem-textarea" placeholder="พิมพ์โจทย์ที่นี่..." rows="2"></textarea>
-      <div class="problem-image-row">
+      <div class="problem-tools-row">
         <button class="btn problem-attach" id="attachImgBtn" type="button" title="แนบรูปโจทย์จากเครื่อง">📎 แนบรูปโจทย์</button>
         <input type="file" id="problemImgInput" accept="image/*" hidden>
         <div class="problem-img-wrap" id="problemImgWrap" style="display:none">
@@ -285,8 +291,6 @@
           </div>
           <button class="problem-img-remove" id="problemImgRemove" type="button" aria-label="ลบรูปโจทย์" title="ลบรูปโจทย์">🗑️</button>
         </div>
-      </div>
-      <div class="problem-sample-row">
         <select id="sampleCategorySelect" class="sample-select" aria-label="ประเภทโจทย์ทศนิยม" title="เลือกประเภทโจทย์">
           <option value="add">➕ บวก</option>
           <option value="sub">➖ ลบ</option>
