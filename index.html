@@ -28,11 +28,15 @@
     -webkit-background-clip:text; background-clip:text; color:transparent;
   }
 
+  .workspace{flex:1 1 auto; min-height:0; display:flex; gap:8px; padding:0 10px 10px;}
   .toolbar{
-    flex:none; display:flex; flex-wrap:wrap; align-items:center; justify-content:center;
-    gap:7px; padding:5px 8px 7px;
+    order:2; flex:none; width:174px; display:flex; flex-direction:column; align-items:stretch;
+    gap:7px; padding:8px; overflow-y:auto; overscroll-behavior:contain;
+    background:rgba(255,255,255,.82); border:2px solid #fff; border-radius:18px;
+    box-shadow:0 6px 18px rgba(90,103,133,.14);
   }
-  .colors{display:flex; gap:5px; background:#fff; padding:5px; border-radius:16px;
+  .toolbar .btn{width:100%; justify-content:flex-start; flex:none;}
+  .colors{display:grid; grid-template-columns:repeat(3,1fr); gap:5px; background:#fff; padding:5px; border-radius:16px;
     box-shadow:0 4px 12px rgba(90,103,133,.14); border:2px solid #fff;}
   .swatch{
     width:32px; height:32px; border-radius:9px; cursor:pointer; border:3px solid #fff;
@@ -105,14 +109,20 @@
   .sample-select{font-family:inherit; font-size:13.5px; font-weight:700; color:var(--ink);
     border:2px solid var(--line); border-radius:10px; padding:8px 8px; background:#fff; cursor:pointer;}
   .btn.sample-btn{background:#e08a1f; padding:8px 12px; font-size:13.5px;}
-  .problem-img-wrap{position:relative; display:flex; align-items:center;}
+  .problem-img-wrap{position:relative; display:flex; align-items:center; gap:8px;}
   .problem-img{max-height:76px; max-width:160px; border-radius:8px; border:2px solid var(--line);
-    object-fit:contain; background:#f7f9fc; display:block;}
+    object-fit:contain; background:#f7f9fc; display:block; transition:max-width .18s,max-height .18s;}
+  .problem-img-zoom{display:flex; align-items:center; gap:5px; padding:4px; border-radius:11px;
+    background:#eef3fb; border:1px solid var(--line);}
+  .problem-img-zoom button{width:32px; height:32px; border:none; border-radius:8px; background:#4d96ff;
+    color:#fff; font:800 18px/1 inherit; cursor:pointer;}
+  .problem-img-zoom button:disabled{opacity:.4; cursor:not-allowed;}
+  .problem-img-percent{min-width:48px; text-align:center; font-size:12px; font-weight:800; color:var(--ink);}
   .problem-img-remove{position:absolute; top:-8px; right:-8px; width:24px; height:24px;
     border-radius:50%; border:2px solid #fff; background:var(--red); color:#fff; font-size:12px;
     cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;}
 
-  .board-wrap{flex:1 1 auto; padding:0 10px 10px; min-height:0;}
+  .board-wrap{order:1; flex:1 1 auto; min-width:0; min-height:0;}
   .board{
     position:relative; width:100%; height:100%; background:#fff;
     border-radius:20px; box-shadow:0 8px 22px rgba(90,103,133,.15);
@@ -239,7 +249,14 @@
   .calc-key.danger{background:#fff0f0; color:#cf3f3f;}
   .calc-key.equals{background:var(--green); color:#fff; border-color:var(--green);}
 
-  @media (max-width:480px){ .btn{padding:8px 10px; font-size:13.5px;} .swatch{width:29px;height:29px;} }
+  @media (max-width:700px){
+    .workspace{gap:5px; padding:0 5px 5px;}
+    .toolbar{width:88px; padding:6px; gap:5px;}
+    .toolbar .btn{padding:8px 6px; font-size:0; justify-content:center; min-height:38px;}
+    .toolbar .btn::first-letter{font-size:17px;}
+    .colors{grid-template-columns:repeat(2,1fr); padding:4px; gap:3px;}
+    .swatch{width:29px;height:29px;}
+  }
 </style>
 </head>
 <body>
@@ -261,6 +278,11 @@
         <input type="file" id="problemImgInput" accept="image/*" hidden>
         <div class="problem-img-wrap" id="problemImgWrap" style="display:none">
           <img id="problemImgPreview" class="problem-img" alt="รูปโจทย์">
+          <div class="problem-img-zoom" role="group" aria-label="ย่อหรือขยายรูปโจทย์">
+            <button id="problemImgZoomOut" type="button" aria-label="ย่อรูปโจทย์" title="ย่อรูปโจทย์">−</button>
+            <span class="problem-img-percent" id="problemImgPercent" aria-live="polite">100%</span>
+            <button id="problemImgZoomIn" type="button" aria-label="ขยายรูปโจทย์" title="ขยายรูปโจทย์">+</button>
+          </div>
           <button class="problem-img-remove" id="problemImgRemove" type="button" aria-label="ลบรูปโจทย์" title="ลบรูปโจทย์">🗑️</button>
         </div>
       </div>
@@ -276,7 +298,8 @@
     </div>
   </div>
 
-  <div class="toolbar">
+  <div class="workspace">
+  <div class="toolbar" role="toolbar" aria-label="แถบเครื่องมือวาดภาพ">
     <div class="colors" id="colors" role="group" aria-label="เลือกสี"></div>
     <button class="btn num"     id="numBtn" type="button" title="เพิ่มตัวเลขหรือข้อความลอย">🔤 เลข/คำ</button>
     <button class="btn brace"   id="braceBtn" type="button" title="เพิ่มปีกกา">❴ ปีกกา</button>
@@ -303,6 +326,7 @@
       </div>
       <canvas class="scribble-canvas" id="scribbleCanvas" aria-hidden="true"></canvas>
     </div>
+  </div>
   </div>
 
   <!-- floating tools for the selected object -->
@@ -387,7 +411,7 @@
 
   /* ---------- multi-page (หลายหน้า) ---------- */
   function emptyBoardJson(){ return JSON.stringify({grid:true,objects:[]}); }
-  function makeEmptyPage(){ return {problemText:'',problemImage:null,scribble:null,history:[emptyBoardJson()]}; }
+  function makeEmptyPage(){ return {problemText:'',problemImage:null,problemImageScale:1,scribble:null,history:[emptyBoardJson()]}; }
   const pages=[makeEmptyPage()];
   let currentPageIndex=0;
   const pageTabsEl=document.getElementById('pageTabs');
@@ -395,6 +419,20 @@
   const problemImgWrap=document.getElementById('problemImgWrap');
   const problemImgPreview=document.getElementById('problemImgPreview');
   const problemImgInput=document.getElementById('problemImgInput');
+  const problemImgZoomOut=document.getElementById('problemImgZoomOut');
+  const problemImgZoomIn=document.getElementById('problemImgZoomIn');
+  const problemImgPercent=document.getElementById('problemImgPercent');
+
+  function updateProblemImageScale(scale){
+    const next=Math.max(.5,Math.min(3,Number(scale)||1));
+    const p=pages[currentPageIndex];
+    if(p) p.problemImageScale=next;
+    problemImgPreview.style.maxWidth=(160*next)+'px';
+    problemImgPreview.style.maxHeight=(76*next)+'px';
+    problemImgPercent.textContent=Math.round(next*100)+'%';
+    problemImgZoomOut.disabled=next<=.5;
+    problemImgZoomIn.disabled=next>=3;
+  }
 
   function renderTabs(){
     pageTabsEl.innerHTML='';
@@ -420,7 +458,10 @@
     });
   }
   function renderProblemImage(dataUrl){
-    if(dataUrl){ problemImgPreview.src=dataUrl; problemImgWrap.style.display='flex'; }
+    if(dataUrl){
+      problemImgPreview.src=dataUrl; problemImgWrap.style.display='flex';
+      updateProblemImageScale(pages[currentPageIndex]?.problemImageScale||1);
+    }
     else{ problemImgPreview.src=''; problemImgWrap.style.display='none'; }
   }
   function saveCurrentPageState(){
@@ -467,7 +508,11 @@
   function attachProblemImage(file){
     if(!file||!file.type.startsWith('image/')) return;
     const reader=new FileReader();
-    reader.onload=()=>{ pages[currentPageIndex].problemImage=reader.result; renderProblemImage(reader.result); };
+    reader.onload=()=>{
+      pages[currentPageIndex].problemImage=reader.result;
+      pages[currentPageIndex].problemImageScale=1;
+      renderProblemImage(reader.result);
+    };
     reader.readAsDataURL(file);
   }
 
@@ -1153,8 +1198,16 @@
     if(problemImgInput.files&&problemImgInput.files[0]) attachProblemImage(problemImgInput.files[0]);
     problemImgInput.value='';
   });
+  problemImgZoomOut.addEventListener('click',()=>{
+    updateProblemImageScale((pages[currentPageIndex].problemImageScale||1)-.25);
+  });
+  problemImgZoomIn.addEventListener('click',()=>{
+    updateProblemImageScale((pages[currentPageIndex].problemImageScale||1)+.25);
+  });
   document.getElementById('problemImgRemove').addEventListener('click',()=>{
-    pages[currentPageIndex].problemImage=null; renderProblemImage(null);
+    pages[currentPageIndex].problemImage=null;
+    pages[currentPageIndex].problemImageScale=1;
+    renderProblemImage(null);
   });
   document.getElementById('sampleBtn').addEventListener('click',insertSampleProblem);
 
