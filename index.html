@@ -119,6 +119,9 @@
   .sample-select{font-family:inherit; font-size:13.5px; font-weight:700; color:var(--ink);
     border:2px solid var(--line); border-radius:10px; padding:8px 8px; background:#fff; cursor:pointer;}
   .btn.sample-btn{background:#e08a1f; padding:8px 12px; font-size:13.5px;}
+  .btn.save-project{background:#3d9970; padding:8px 12px; font-size:13.5px;}
+  .btn.cloud-auth{background:#5667d8; padding:8px 12px; font-size:13.5px;}
+  .btn.cloud-auth.logout{background:#8a97ac;}
   .problem-img-wrap{position:relative; display:flex; align-items:center; gap:8px;}
   .problem-img{max-height:76px; max-width:160px; border-radius:8px; border:2px solid var(--line);
     object-fit:contain; background:#f7f9fc; display:block; transition:max-width .18s,max-height .18s;}
@@ -314,6 +317,9 @@
           <option value="div">➗ หาร</option>
         </select>
         <button class="btn sample-btn" id="sampleBtn" type="button" title="สุ่มโจทย์ทศนิยมตามประเภทที่เลือก">🎲 สุ่มโจทย์ทศนิยม</button>
+        <button class="btn save-project" id="saveProjectBtn" type="button" title="บันทึกโจทย์ รูป และงานทั้งหมดในเครื่องและ Supabase เมื่อเข้าสู่ระบบ">💾 บันทึกงาน</button>
+        <button class="btn cloud-auth" id="cloudAuthBtn" type="button" title="เข้าสู่ระบบเพื่อเก็บงานใน Supabase">☁️ เข้าสู่ระบบ</button>
+        <button class="btn cloud-auth logout" id="cloudLogoutBtn" type="button" title="ออกจากระบบ Supabase" style="display:none">ออกจากระบบ</button>
       </div>
     </div>
       </div>
@@ -414,6 +420,20 @@
     </div>
   </div>
 
+  <div class="modal" id="authModal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+    <div class="box">
+      <h3 id="authTitle">☁️ บัญชีครูสำหรับบันทึกออนไลน์</h3>
+      <input id="authEmail" type="email" inputmode="email" placeholder="อีเมลครู" autocomplete="email">
+      <input id="authPassword" type="password" placeholder="รหัสผ่านอย่างน้อย 6 ตัว" autocomplete="current-password" style="margin-top:10px">
+      <div class="row">
+        <button class="btn ghost" id="authCancelBtn" type="button">ยกเลิก</button>
+        <button class="btn cloud-auth" id="authSignUpBtn" type="button">สมัครบัญชี</button>
+        <button class="btn ok" id="authSignInBtn" type="button">เข้าสู่ระบบ</button>
+      </div>
+    </div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
 <script>
 (function(){
   "use strict";
@@ -436,6 +456,11 @@
   function makeEmptyPage(){ return {problemText:'',problemImage:null,problemImageScale:1,scribble:null,history:[emptyBoardJson()]}; }
   const pages=[makeEmptyPage()];
   let currentPageIndex=0;
+  const STORAGE_KEY='barModelStudioProjectV1';
+  const SUPABASE_URL='https://mifxyolxisssbtqmoacm.supabase.co';
+  const SUPABASE_KEY='sb_publishable_x4FVUqwHlKZoTKuUFitwFQ_qLNozsXF';
+  const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+  let currentUser=null;
   const pageTabsEl=document.getElementById('pageTabs');
   const problemInput=document.getElementById('problemInput');
   const problemImgWrap=document.getElementById('problemImgWrap');
@@ -491,6 +516,52 @@
     p.history=history.slice();
     p.problemText=problemInput.value;
     p.scribble=scribbleCanvas.toDataURL('image/png');
+  }
+  function projectPayload(){ return {version:1,currentPageIndex,pages}; }
+  function saveProjectLocally(){
+    saveCurrentPageState();
+    try{
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(projectPayload()));
+      return true;
+    }catch(err){
+      showToast('บันทึกไม่สำเร็จ — รูปแนบอาจมีขนาดใหญ่เกินไป');
+      return false;
+    }
+  }
+  async function saveProject(){
+    if(!saveProjectLocally()) return;
+    if(!currentUser){ showToast('บันทึกในเครื่องแล้ว — เข้าสู่ระบบเพื่อเก็บใน Supabase'); return; }
+    const {error}=await supabaseClient.from('bar_model_projects').upsert({
+      user_id:currentUser.id,
+      name:'งานล่าสุด',
+      project_data:projectPayload(),
+      updated_at:new Date().toISOString()
+    },{onConflict:'user_id,name'});
+    showToast(error?'บันทึกในเครื่องแล้ว แต่ Supabase ไม่สำเร็จ':'บันทึกงานไว้ใน Supabase แล้ว');
+  }
+  function applyProjectPayload(saved){
+    if(!saved||!Array.isArray(saved.pages)||!saved.pages.length) return false;
+    const validPages=saved.pages.filter(p=>p&&Array.isArray(p.history)&&p.history.length);
+    if(!validPages.length) return false;
+    pages.splice(0,pages.length,...validPages);
+    currentPageIndex=Math.max(0,Math.min(Number(saved.currentPageIndex)||0,pages.length-1));
+    loadPageIntoBoard(currentPageIndex); renderTabs();
+    return true;
+  }
+  function restoreSavedProject(){
+    let saved;
+    try{ saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null'); }
+    catch(err){ return false; }
+    return applyProjectPayload(saved);
+  }
+  async function loadCloudProject(){
+    if(!currentUser) return;
+    const {data,error}=await supabaseClient.from('bar_model_projects')
+      .select('project_data').eq('user_id',currentUser.id).eq('name','งานล่าสุด').maybeSingle();
+    if(error){ showToast('ยังเปิดงานจาก Supabase ไม่สำเร็จ'); return; }
+    if(data&&applyProjectPayload(data.project_data)){
+      saveProjectLocally(); showToast('เปิดงานล่าสุดจาก Supabase แล้ว');
+    }
   }
   function loadPageIntoBoard(idx){
     const p=pages[idx];
@@ -1242,6 +1313,41 @@
     renderProblemImage(null);
   });
   document.getElementById('sampleBtn').addEventListener('click',insertSampleProblem);
+  document.getElementById('saveProjectBtn').addEventListener('click',saveProject);
+
+  const authModal=document.getElementById('authModal');
+  const authEmail=document.getElementById('authEmail');
+  const authPassword=document.getElementById('authPassword');
+  const cloudAuthBtn=document.getElementById('cloudAuthBtn');
+  const cloudLogoutBtn=document.getElementById('cloudLogoutBtn');
+  function setAuthUi(user){
+    currentUser=user||null;
+    cloudAuthBtn.style.display=currentUser?'none':'';
+    cloudLogoutBtn.style.display=currentUser?'':'none';
+    if(currentUser) cloudLogoutBtn.textContent=`ออกจากระบบ (${currentUser.email||'ครู'})`;
+  }
+  function closeAuthModal(){ authModal.classList.remove('show'); authPassword.value=''; }
+  cloudAuthBtn.addEventListener('click',()=>authModal.classList.add('show'));
+  document.getElementById('authCancelBtn').addEventListener('click',closeAuthModal);
+  authModal.addEventListener('pointerdown',e=>{if(e.target===authModal)closeAuthModal();});
+  document.getElementById('authSignInBtn').addEventListener('click',async()=>{
+    const email=authEmail.value.trim(),password=authPassword.value;
+    if(!email||password.length<6){showToast('กรอกอีเมลและรหัสผ่านอย่างน้อย 6 ตัว');return;}
+    const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
+    if(error){showToast('เข้าสู่ระบบไม่สำเร็จ: '+error.message);return;}
+    setAuthUi(data.user); closeAuthModal(); await loadCloudProject();
+  });
+  document.getElementById('authSignUpBtn').addEventListener('click',async()=>{
+    const email=authEmail.value.trim(),password=authPassword.value;
+    if(!email||password.length<6){showToast('กรอกอีเมลและรหัสผ่านอย่างน้อย 6 ตัว');return;}
+    const {data,error}=await supabaseClient.auth.signUp({email,password});
+    if(error){showToast('สมัครบัญชีไม่สำเร็จ: '+error.message);return;}
+    if(data.session){setAuthUi(data.user);closeAuthModal();showToast('สมัครและเข้าสู่ระบบแล้ว');}
+    else showToast('สมัครแล้ว — กรุณายืนยันอีเมลก่อนเข้าสู่ระบบ');
+  });
+  cloudLogoutBtn.addEventListener('click',async()=>{
+    await supabaseClient.auth.signOut(); setAuthUi(null); showToast('ออกจากระบบแล้ว');
+  });
 
   board.addEventListener('pointerdown',e=>{ if(!e.target.closest('.obj')) deselect(); },true);
   document.addEventListener('copy',e=>{
@@ -1292,10 +1398,18 @@
   }
   if('ResizeObserver' in window) new ResizeObserver(scheduleBoardFit).observe(board);
   else window.addEventListener('resize',scheduleBoardFit,{passive:true});
-  history=pages[0].history.slice();
-  undoBtn.disabled=history.length<=1;
-  fitScribbleCanvas();
-  updateHint(); renderTabs();
+  if(!restoreSavedProject()){
+    history=pages[0].history.slice();
+    undoBtn.disabled=history.length<=1;
+    fitScribbleCanvas();
+    updateHint(); renderTabs();
+  }else{
+    showToast('เปิดงานที่บันทึกไว้ล่าสุดแล้ว');
+  }
+  supabaseClient.auth.getSession().then(({data})=>{
+    const user=data.session?.user||null; setAuthUi(user); if(user) loadCloudProject();
+  });
+  supabaseClient.auth.onAuthStateChange((_event,session)=>setAuthUi(session?.user||null));
 })();
 </script>
 </body>
