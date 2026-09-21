@@ -35,8 +35,10 @@
   }
   .developer-credit{margin-top:2px; color:#74809b; font-size:9px; white-space:nowrap;
     font-weight:650; letter-spacing:.02em;}
-  .custom-logo{display:none; max-width:160px; max-height:54px; object-fit:contain; object-position:left center; margin-bottom:3px;}
-  .logo-tools{display:flex; gap:4px; margin-top:4px;}
+  .custom-logo{display:none; width:min(168px,100%); height:92px; object-fit:contain; object-position:center; margin:0 auto 3px;}
+  header.has-custom-logo{align-items:center; text-align:center;}
+  header.has-custom-logo h1,header.has-custom-logo .developer-credit{display:none;}
+  .logo-tools{display:flex; justify-content:center; gap:4px; margin-top:4px;}
   .logo-btn{border:1px solid #cfd9e9; border-radius:8px; background:#fff; color:#56677f;
     padding:3px 6px; font:700 9px/1.2 inherit; cursor:pointer;}
   .logo-remove{display:none; color:#c0475f;}
@@ -695,6 +697,7 @@
   function renderCustomLogo(){
     const img=document.getElementById('customLogo');
     const removeBtn=document.getElementById('logoRemoveBtn');
+    document.querySelector('header').classList.toggle('has-custom-logo',!!customLogo);
     img.src=customLogo||'';
     img.style.display=customLogo?'block':'none';
     removeBtn.style.display=customLogo?'inline-block':'none';
@@ -705,11 +708,31 @@
     reader.onload=()=>{
       const source=new Image();
       source.onload=()=>{
-        const scale=Math.min(1,320/source.width,160/source.height);
+        const scan=document.createElement('canvas');
+        scan.width=source.width; scan.height=source.height;
+        const scanCtx=scan.getContext('2d',{willReadFrequently:true});
+        scanCtx.drawImage(source,0,0);
+        const pixels=scanCtx.getImageData(0,0,scan.width,scan.height).data;
+        const corners=[[0,0],[scan.width-1,0],[0,scan.height-1],[scan.width-1,scan.height-1]];
+        const bg=corners.reduce((sum,[x,y])=>{
+          const i=(y*scan.width+x)*4; return [sum[0]+pixels[i],sum[1]+pixels[i+1],sum[2]+pixels[i+2]];
+        },[0,0,0]).map(v=>v/4);
+        let minX=scan.width,minY=scan.height,maxX=-1,maxY=-1;
+        for(let y=0;y<scan.height;y+=2) for(let x=0;x<scan.width;x+=2){
+          const i=(y*scan.width+x)*4;
+          const distance=Math.abs(pixels[i]-bg[0])+Math.abs(pixels[i+1]-bg[1])+Math.abs(pixels[i+2]-bg[2]);
+          if(pixels[i+3]>20&&distance>48){minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);}
+        }
+        const found=maxX>=minX&&maxY>=minY;
+        const pad=found?6:0;
+        const sx=found?Math.max(0,minX-pad):0,sy=found?Math.max(0,minY-pad):0;
+        const sw=found?Math.min(scan.width-sx,maxX-minX+1+pad*2):scan.width;
+        const sh=found?Math.min(scan.height-sy,maxY-minY+1+pad*2):scan.height;
+        const scale=Math.min(1,320/sw,160/sh);
         const canvas=document.createElement('canvas');
-        canvas.width=Math.max(1,Math.round(source.width*scale));
-        canvas.height=Math.max(1,Math.round(source.height*scale));
-        canvas.getContext('2d').drawImage(source,0,0,canvas.width,canvas.height);
+        canvas.width=Math.max(1,Math.round(sw*scale));
+        canvas.height=Math.max(1,Math.round(sh*scale));
+        canvas.getContext('2d').drawImage(source,sx,sy,sw,sh,0,0,canvas.width,canvas.height);
         customLogo=canvas.toDataURL('image/webp',.88);
         renderCustomLogo(); saveProject();
       };
