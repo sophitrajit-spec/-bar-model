@@ -22,18 +22,18 @@
   input,textarea{user-select:text; -webkit-user-select:text;}
 
   .top-area{
-    flex:none; display:flex; align-items:stretch; gap:12px; padding:8px 10px 6px;
+    flex:none; display:flex; align-items:stretch; gap:8px; padding:8px 10px 6px;
   }
   header{
-    flex:0 0 clamp(290px,27vw,340px); display:flex; flex-direction:column;
-    align-items:flex-start; justify-content:center; text-align:left; padding:7px 12px;
+    flex:0 0 174px; width:174px; display:flex; flex-direction:column;
+    align-items:flex-start; justify-content:center; text-align:left; padding:7px 6px;
   }
   header h1{
-    margin:0; font-size:clamp(20px,2.6vw,28px); font-weight:850; letter-spacing:.02em; white-space:nowrap;
+    margin:0; font-size:16px; line-height:1.12; font-weight:850; letter-spacing:0; white-space:nowrap;
     background:linear-gradient(90deg,var(--green),var(--orange),var(--pink),var(--purple));
     -webkit-background-clip:text; background-clip:text; color:transparent;
   }
-  .developer-credit{margin-top:1px; color:#74809b; font-size:clamp(10px,2.4vw,12px);
+  .developer-credit{margin-top:2px; color:#74809b; font-size:9px; white-space:nowrap;
     font-weight:650; letter-spacing:.02em;}
   .top-content{flex:1 1 auto; min-width:0; display:flex; flex-direction:column;}
 
@@ -102,15 +102,15 @@
   .problem-panel{flex:1 1 auto; margin:0; background:#fff; border-radius:14px;
     box-shadow:0 3px 10px rgba(90,103,133,.12); border:2px solid #fff; overflow:hidden;}
   .problem-toggle{width:100%; border:none; background:#fef9ef; font-family:inherit; font-weight:800;
-    font-size:14px; color:var(--ink); padding:8px 12px; display:flex; align-items:center;
+    font-size:16px; color:var(--ink); padding:9px 12px; display:flex; align-items:center;
     justify-content:space-between; cursor:pointer;}
   .problem-toggle .chev{transition:transform .15s; display:inline-block;}
   .problem-panel.collapsed .problem-body{display:none;}
   .problem-panel.collapsed .chev{transform:rotate(-90deg);}
-  .problem-body{padding:8px 12px 12px; max-height:220px; overflow-y:auto;}
-  .problem-textarea{width:100%; font-family:inherit; font-size:22px; font-weight:700; line-height:1.4;
-    color:var(--ink); border:2px solid var(--line); border-radius:10px; padding:10px 12px; resize:vertical;
-    min-height:72px; box-sizing:border-box; text-align:center;}
+  .problem-body{padding:8px 12px 12px; max-height:260px; overflow-y:auto;}
+  .problem-textarea{width:100%; font-family:inherit; font-size:clamp(28px,2.7vw,38px); font-weight:800; line-height:1.35;
+    color:var(--ink); border:2px solid var(--line); border-radius:10px; padding:12px 14px; resize:vertical;
+    min-height:96px; box-sizing:border-box; text-align:center;}
   .problem-textarea:focus{outline:none; border-color:var(--blue);}
   .problem-tools-row{display:flex; align-items:center; justify-content:flex-start; gap:8px; margin-top:8px;
     flex-wrap:nowrap; overflow-x:auto; padding:2px 0 4px; scrollbar-width:thin;}
@@ -265,7 +265,8 @@
     header{width:100%; padding:5px 7px 7px;}
     header h1{font-size:20px;}
     .page-bar{padding-bottom:4px;}
-    .problem-textarea{min-height:58px; font-size:18px;}
+    .problem-toggle{font-size:14px;}
+    .problem-textarea{min-height:76px; font-size:24px;}
     .workspace{gap:5px; padding:0 5px 5px;}
     .toolbar{width:88px; padding:6px; gap:5px;}
     .toolbar .btn{padding:8px 6px; font-size:0; justify-content:center; min-height:38px;}
@@ -343,7 +344,7 @@
       <div class="hint" id="hint">
         <div class="big">👆</div>
         <div>ลากนิ้ว/เมาส์บนพื้นที่นี้ เพื่อวาดสี่เหลี่ยม</div>
-        <div class="small">แตะแท่งเพื่อพิมพ์เลข/คำไทย · ใช้จุดจับมุมขวาล่างเพื่อปรับขนาด · ปุ่ม ┃ ใช้แบ่งช่อง</div>
+        <div class="small">ดับเบิลคลิก/แตะสองครั้งที่แท่งเพื่อพิมพ์เลข/คำไทย · ใช้จุดจับมุมขวาล่างเพื่อปรับขนาด · ปุ่ม ┃ ใช้แบ่งช่อง</div>
       </div>
       <canvas class="scribble-canvas" id="scribbleCanvas" aria-hidden="true"></canvas>
     </div>
@@ -878,7 +879,7 @@
     const rec={el,type:'bar',label}; board.appendChild(el); objs.push(rec);
     setText(rec,text);
     attachResize(rec);
-    dragMove(rec,e=>cutMode?cutBar(rec,e):openEditor(rec));
+    dragMove(rec,e=>cutMode?cutBar(rec,e):openEditor(rec),'double');
     updateHint(); select(rec); clampObject(rec); if(record) commitHistory(); return rec;
   }
   function setText(rec,t){ rec.label.textContent=t; fitLabel(rec); }
@@ -1010,8 +1011,9 @@
   }
 
   /* ============ SHARED MOVE (tap = onTap) ============ */
-  function dragMove(rec,onTap){
+  function dragMove(rec,onTap,tapMode='single'){
     const el=rec.el; let ox,oy,bl,bt,maxX,maxY,moved,active=false;
+    let lastTapAt=0,lastTapX=0,lastTapY=0;
     el.addEventListener('pointerdown',e=>{
       e.stopPropagation();
       if(cutMode&&rec.type!=='bar'){
@@ -1032,7 +1034,18 @@
       el.style.top =Math.max(0,Math.min(bt+dy,maxY))+'px';
     });
     el.addEventListener('pointerup',e=>{
-      if(active&&!moved&&onTap) onTap(e);
+      if(active&&!moved&&onTap){
+        if(cutMode||tapMode==='single') onTap(e);
+        else{
+          const now=performance.now();
+          const closeEnough=Math.hypot(e.clientX-lastTapX,e.clientY-lastTapY)<18;
+          if(now-lastTapAt<420&&closeEnough){
+            lastTapAt=0; onTap(e);
+          }else{
+            lastTapAt=now; lastTapX=e.clientX; lastTapY=e.clientY;
+          }
+        }
+      }
       else if(active&&moved) commitHistory();
       active=false;
     });
