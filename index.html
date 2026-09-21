@@ -35,6 +35,11 @@
   }
   .developer-credit{margin-top:2px; color:#74809b; font-size:9px; white-space:nowrap;
     font-weight:650; letter-spacing:.02em;}
+  .custom-logo{display:none; max-width:160px; max-height:54px; object-fit:contain; object-position:left center; margin-bottom:3px;}
+  .logo-tools{display:flex; gap:4px; margin-top:4px;}
+  .logo-btn{border:1px solid #cfd9e9; border-radius:8px; background:#fff; color:#56677f;
+    padding:3px 6px; font:700 9px/1.2 inherit; cursor:pointer;}
+  .logo-remove{display:none; color:#c0475f;}
   .top-content{flex:1 1 auto; min-width:0; display:flex; flex-direction:column;}
 
   .workspace{flex:1 1 auto; min-height:0; display:flex; gap:8px; padding:0 10px 10px;}
@@ -119,6 +124,8 @@
   .sample-select{font-family:inherit; font-size:13.5px; font-weight:700; color:var(--ink);
     border:2px solid var(--line); border-radius:10px; padding:8px 8px; background:#fff; cursor:pointer;}
   .btn.sample-btn{background:#e08a1f; padding:8px 12px; font-size:13.5px;}
+  .btn.bank-add{background:#3d6ea5; padding:8px 12px; font-size:13.5px;}
+  .btn.bank-random{background:#9b5de5; padding:8px 12px; font-size:13.5px;}
   .btn.save-project{background:#3d9970; padding:8px 12px; font-size:13.5px;}
   .btn.cloud-auth{background:#5667d8; padding:8px 12px; font-size:13.5px;}
   .btn.cloud-auth.logout{background:#8a97ac;}
@@ -282,8 +289,14 @@
 <body>
   <div class="top-area">
     <header>
+      <img id="customLogo" class="custom-logo" alt="โลโก้ของครู">
       <h1>✏️ Bar Model Studio</h1>
       <div class="developer-credit">System Developer: ครูโสภิตรา จิตชู</div>
+      <div class="logo-tools">
+        <button id="logoUploadBtn" class="logo-btn" type="button" title="แนบหรือเปลี่ยนโลโก้">🖼️ เพิ่มโลโก้</button>
+        <button id="logoRemoveBtn" class="logo-btn logo-remove" type="button" title="ลบโลโก้ที่แนบ">✕ ลบ</button>
+        <input id="logoInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+      </div>
     </header>
 
     <div class="top-content">
@@ -317,6 +330,8 @@
           <option value="div">➗ หาร</option>
         </select>
         <button class="btn sample-btn" id="sampleBtn" type="button" title="สุ่มโจทย์ทศนิยมตามประเภทที่เลือก">🎲 สุ่มโจทย์ทศนิยม</button>
+        <button class="btn bank-add" id="addProblemBankBtn" type="button" title="เพิ่มข้อความในช่องโจทย์เข้าคลังของครู">➕ เก็บโจทย์</button>
+        <button class="btn bank-random" id="randomProblemBankBtn" type="button" title="สุ่มโจทย์ที่ครูเก็บไว้" disabled>🎲 สุ่มคลัง (0)</button>
         <button class="btn save-project" id="saveProjectBtn" type="button" title="บันทึกโจทย์ รูป และงานทั้งหมดในเครื่องและ Supabase เมื่อเข้าสู่ระบบ">💾 บันทึกงาน</button>
         <button class="btn cloud-auth" id="cloudAuthBtn" type="button" title="เข้าสู่ระบบเพื่อเก็บงานใน Supabase">☁️ เข้าสู่ระบบ</button>
         <button class="btn cloud-auth logout" id="cloudLogoutBtn" type="button" title="ออกจากระบบ Supabase" style="display:none">ออกจากระบบ</button>
@@ -455,6 +470,8 @@
   function emptyBoardJson(){ return JSON.stringify({grid:true,objects:[]}); }
   function makeEmptyPage(){ return {problemText:'',problemImage:null,problemImageScale:1,scribble:null,history:[emptyBoardJson()]}; }
   const pages=[makeEmptyPage()];
+  const problemBank=[];
+  let customLogo=null;
   let currentPageIndex=0;
   const STORAGE_KEY='barModelStudioProjectV1';
   const SUPABASE_URL='https://mifxyolxisssbtqmoacm.supabase.co';
@@ -517,7 +534,7 @@
     p.problemText=problemInput.value;
     p.scribble=scribbleCanvas.toDataURL('image/png');
   }
-  function projectPayload(){ return {version:1,currentPageIndex,pages}; }
+  function projectPayload(){ return {version:3,currentPageIndex,pages,problemBank,customLogo}; }
   function saveProjectLocally(){
     saveCurrentPageState();
     try{
@@ -544,8 +561,10 @@
     const validPages=saved.pages.filter(p=>p&&Array.isArray(p.history)&&p.history.length);
     if(!validPages.length) return false;
     pages.splice(0,pages.length,...validPages);
+    problemBank.splice(0,problemBank.length,...(Array.isArray(saved.problemBank)?saved.problemBank.filter(x=>typeof x==='string'&&x.trim()):[]));
+    customLogo=typeof saved.customLogo==='string'?saved.customLogo:null;
     currentPageIndex=Math.max(0,Math.min(Number(saved.currentPageIndex)||0,pages.length-1));
-    loadPageIntoBoard(currentPageIndex); renderTabs();
+    loadPageIntoBoard(currentPageIndex); renderTabs(); updateProblemBankUi(); renderCustomLogo();
     return true;
   }
   function restoreSavedProject(){
@@ -651,6 +670,52 @@
     }
     problemInput.value=pick;
     pages[currentPageIndex].problemText=pick;
+  }
+  function updateProblemBankUi(){
+    const btn=document.getElementById('randomProblemBankBtn');
+    btn.textContent=`🎲 สุ่มคลัง (${problemBank.length})`;
+    btn.disabled=!problemBank.length;
+  }
+  async function addProblemToBank(){
+    const text=problemInput.value.trim();
+    if(!text){showToast('กรุณาพิมพ์โจทย์ก่อนเก็บเข้าคลัง');return;}
+    if(problemBank.includes(text)){showToast('โจทย์นี้อยู่ในคลังแล้ว');return;}
+    problemBank.push(text); updateProblemBankUi();
+    await saveProject();
+  }
+  function randomProblemFromBank(){
+    if(!problemBank.length){showToast('ยังไม่มีโจทย์ในคลัง');return;}
+    let choices=problemBank;
+    if(problemBank.length>1) choices=problemBank.filter(text=>text!==problemInput.value.trim());
+    const pick=choices[Math.floor(Math.random()*choices.length)]||problemBank[0];
+    problemInput.value=pick;
+    pages[currentPageIndex].problemText=pick;
+    showToast('สุ่มโจทย์จากคลังแล้ว');
+  }
+  function renderCustomLogo(){
+    const img=document.getElementById('customLogo');
+    const removeBtn=document.getElementById('logoRemoveBtn');
+    img.src=customLogo||'';
+    img.style.display=customLogo?'block':'none';
+    removeBtn.style.display=customLogo?'inline-block':'none';
+  }
+  function attachCustomLogo(file){
+    if(!file||!file.type.startsWith('image/')) return;
+    const reader=new FileReader();
+    reader.onload=()=>{
+      const source=new Image();
+      source.onload=()=>{
+        const scale=Math.min(1,320/source.width,160/source.height);
+        const canvas=document.createElement('canvas');
+        canvas.width=Math.max(1,Math.round(source.width*scale));
+        canvas.height=Math.max(1,Math.round(source.height*scale));
+        canvas.getContext('2d').drawImage(source,0,0,canvas.width,canvas.height);
+        customLogo=canvas.toDataURL('image/webp',.88);
+        renderCustomLogo(); saveProject();
+      };
+      source.src=reader.result;
+    };
+    reader.readAsDataURL(file);
   }
 
   function showToast(message){
@@ -1313,7 +1378,18 @@
     renderProblemImage(null);
   });
   document.getElementById('sampleBtn').addEventListener('click',insertSampleProblem);
+  document.getElementById('addProblemBankBtn').addEventListener('click',addProblemToBank);
+  document.getElementById('randomProblemBankBtn').addEventListener('click',randomProblemFromBank);
   document.getElementById('saveProjectBtn').addEventListener('click',saveProject);
+  const logoInput=document.getElementById('logoInput');
+  document.getElementById('logoUploadBtn').addEventListener('click',()=>logoInput.click());
+  logoInput.addEventListener('change',()=>{
+    if(logoInput.files&&logoInput.files[0]) attachCustomLogo(logoInput.files[0]);
+    logoInput.value='';
+  });
+  document.getElementById('logoRemoveBtn').addEventListener('click',()=>{
+    customLogo=null; renderCustomLogo(); saveProject();
+  });
 
   const authModal=document.getElementById('authModal');
   const authEmail=document.getElementById('authEmail');
@@ -1402,7 +1478,7 @@
     history=pages[0].history.slice();
     undoBtn.disabled=history.length<=1;
     fitScribbleCanvas();
-    updateHint(); renderTabs();
+    updateHint(); renderTabs(); updateProblemBankUi(); renderCustomLogo();
   }else{
     showToast('เปิดงานที่บันทึกไว้ล่าสุดแล้ว');
   }
