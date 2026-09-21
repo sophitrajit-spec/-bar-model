@@ -21,18 +21,25 @@
   }
   input,textarea{user-select:text; -webkit-user-select:text;}
 
-  header{flex:none; text-align:center; padding:7px 10px 5px;}
+  .top-area{
+    flex:none; display:flex; align-items:stretch; gap:12px; padding:8px 10px 6px;
+  }
+  header{
+    flex:0 0 clamp(290px,27vw,340px); display:flex; flex-direction:column;
+    align-items:flex-start; justify-content:center; text-align:left; padding:7px 12px;
+  }
   header h1{
-    margin:0; font-size:clamp(18px,4.4vw,27px); font-weight:850; letter-spacing:.02em;
+    margin:0; font-size:clamp(20px,2.6vw,28px); font-weight:850; letter-spacing:.02em; white-space:nowrap;
     background:linear-gradient(90deg,var(--green),var(--orange),var(--pink),var(--purple));
     -webkit-background-clip:text; background-clip:text; color:transparent;
   }
   .developer-credit{margin-top:1px; color:#74809b; font-size:clamp(10px,2.4vw,12px);
     font-weight:650; letter-spacing:.02em;}
+  .top-content{flex:1 1 auto; min-width:0; display:flex; flex-direction:column;}
 
   .workspace{flex:1 1 auto; min-height:0; display:flex; gap:8px; padding:0 10px 10px;}
   .toolbar{
-    order:2; flex:none; width:174px; display:flex; flex-direction:column; align-items:stretch;
+    order:1; flex:none; width:174px; display:flex; flex-direction:column; align-items:stretch;
     gap:7px; padding:8px; overflow-y:auto; overscroll-behavior:contain;
     background:rgba(255,255,255,.82); border:2px solid #fff; border-radius:18px;
     box-shadow:0 6px 18px rgba(90,103,133,.14);
@@ -77,7 +84,7 @@
   .btn.grid.off{background:#c4cdda;}
 
   /* ---------- page tabs ---------- */
-  .page-bar{flex:none; display:flex; align-items:center; gap:6px; padding:2px 10px 4px;}
+  .page-bar{flex:none; display:flex; align-items:center; gap:6px; padding:0 0 4px;}
   .page-tabs{display:flex; gap:6px; overflow-x:auto; flex:1; min-width:0; padding-bottom:2px;}
   .page-tabs::-webkit-scrollbar{height:5px;}
   .page-tab{display:flex; align-items:center; gap:2px; background:#fff; border-radius:12px;
@@ -92,7 +99,7 @@
   .btn.page-add{background:#3d9970; flex-shrink:0;}
 
   /* ---------- problem (โจทย์) panel ---------- */
-  .problem-panel{flex:none; margin:0 10px 6px; background:#fff; border-radius:14px;
+  .problem-panel{flex:1 1 auto; margin:0; background:#fff; border-radius:14px;
     box-shadow:0 3px 10px rgba(90,103,133,.12); border:2px solid #fff; overflow:hidden;}
   .problem-toggle{width:100%; border:none; background:#fef9ef; font-family:inherit; font-weight:800;
     font-size:14px; color:var(--ink); padding:8px 12px; display:flex; align-items:center;
@@ -100,12 +107,12 @@
   .problem-toggle .chev{transition:transform .15s; display:inline-block;}
   .problem-panel.collapsed .problem-body{display:none;}
   .problem-panel.collapsed .chev{transform:rotate(-90deg);}
-  .problem-body{padding:8px 12px 12px; max-height:200px; overflow-y:auto;}
+  .problem-body{padding:8px 12px 12px; max-height:220px; overflow-y:auto;}
   .problem-textarea{width:100%; font-family:inherit; font-size:22px; font-weight:700; line-height:1.4;
     color:var(--ink); border:2px solid var(--line); border-radius:10px; padding:10px 12px; resize:vertical;
-    min-height:52px; box-sizing:border-box; text-align:center;}
+    min-height:72px; box-sizing:border-box; text-align:center;}
   .problem-textarea:focus{outline:none; border-color:var(--blue);}
-  .problem-tools-row{display:flex; align-items:center; justify-content:center; gap:8px; margin-top:8px;
+  .problem-tools-row{display:flex; align-items:center; justify-content:flex-start; gap:8px; margin-top:8px;
     flex-wrap:nowrap; overflow-x:auto; padding:2px 0 4px; scrollbar-width:thin;}
   .problem-tools-row>*{flex:none;}
   .btn.problem-attach{background:#3d6ea5; padding:8px 12px; font-size:13.5px;}
@@ -125,11 +132,11 @@
     border-radius:50%; border:2px solid #fff; background:var(--red); color:#fff; font-size:12px;
     cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;}
 
-  .board-wrap{order:1; flex:1 1 auto; min-width:0; min-height:0;}
+  .board-wrap{order:2; flex:1 1 auto; min-width:0; min-height:0;}
   .board{
     position:relative; width:100%; height:100%; background:#fff;
     border-radius:20px; box-shadow:0 8px 22px rgba(90,103,133,.15);
-    border:3px solid #fff; overflow:hidden; touch-action:none;
+    border:3px solid #fff; overflow:hidden; touch-action:none; contain:layout paint style;
   }
   .board.grid-on{
     background-image:
@@ -147,7 +154,7 @@
   .hint .small{font-size:.82em; font-weight:600;}
 
   /* ---------- generic object ---------- */
-  .obj{position:absolute; touch-action:none;}
+  .obj{position:absolute; touch-action:none; will-change:left,top;}
   .obj.sel{outline:3px dashed var(--ink); outline-offset:3px; border-radius:8px;}
 
   .bar{
@@ -171,7 +178,8 @@
     position:absolute; color:var(--ink); font-size:12px; font-weight:800;
     white-space:nowrap; pointer-events:none;
   }
-  .draft{position:absolute; border-radius:12px; border:3px dashed rgba(0,0,0,.35); background:rgba(0,0,0,.06);}
+  .draft{position:absolute; border-radius:12px; border:3px dashed rgba(0,0,0,.35); background:rgba(0,0,0,.06);
+    will-change:left,top,width,height;}
   .resize-handle{
     position:absolute; right:4px; bottom:4px; width:28px; height:28px; display:none;
     border:3px solid #fff; border-radius:50%; background:var(--ink); cursor:nwse-resize;
@@ -253,6 +261,11 @@
   .calc-key.equals{background:var(--green); color:#fff; border-color:var(--green);}
 
   @media (max-width:700px){
+    .top-area{display:block; padding:5px;}
+    header{width:100%; padding:5px 7px 7px;}
+    header h1{font-size:20px;}
+    .page-bar{padding-bottom:4px;}
+    .problem-textarea{min-height:58px; font-size:18px;}
     .workspace{gap:5px; padding:0 5px 5px;}
     .toolbar{width:88px; padding:6px; gap:5px;}
     .toolbar .btn{padding:8px 6px; font-size:0; justify-content:center; min-height:38px;}
@@ -263,17 +276,19 @@
 </style>
 </head>
 <body>
-  <header>
-    <h1>✏️ Bar Model Studio</h1>
-    <div class="developer-credit">System Developer: ครูโสภิตรา จิตชู</div>
-  </header>
+  <div class="top-area">
+    <header>
+      <h1>✏️ Bar Model Studio</h1>
+      <div class="developer-credit">System Developer: ครูโสภิตรา จิตชู</div>
+    </header>
 
-  <div class="page-bar">
-    <div class="page-tabs" id="pageTabs" role="tablist" aria-label="รายการหน้า"></div>
-    <button class="btn page-add" id="addPageBtn" type="button" title="เพิ่มหน้าใหม่">➕ หน้าใหม่</button>
-  </div>
+    <div class="top-content">
+      <div class="page-bar">
+        <div class="page-tabs" id="pageTabs" role="tablist" aria-label="รายการหน้า"></div>
+        <button class="btn page-add" id="addPageBtn" type="button" title="เพิ่มหน้าใหม่">➕ หน้าใหม่</button>
+      </div>
 
-  <div class="problem-panel" id="problemPanel">
+      <div class="problem-panel" id="problemPanel">
     <button class="problem-toggle" id="problemToggle" type="button" aria-expanded="true" aria-controls="problemBody" title="ย่อ/ขยายช่องโจทย์">
       <span>📋 โจทย์ประจำหน้านี้</span><span class="chev">▾</span>
     </button>
@@ -298,6 +313,8 @@
           <option value="div">➗ หาร</option>
         </select>
         <button class="btn sample-btn" id="sampleBtn" type="button" title="สุ่มโจทย์ทศนิยมตามประเภทที่เลือก">🎲 สุ่มโจทย์ทศนิยม</button>
+      </div>
+    </div>
       </div>
     </div>
   </div>
@@ -587,20 +604,18 @@
   function fitScribbleCanvas(preserve=true){
     const dpr=window.devicePixelRatio||1;
     const w=board.clientWidth,h=board.clientHeight;
-    let prevData=null;
+    let previous=null;
     if(preserve&&scribbleCanvas.width&&scribbleCanvas.height){
-      try{ prevData=scribbleCanvas.toDataURL('image/png'); }catch(err){ prevData=null; }
+      previous=document.createElement('canvas');
+      previous.width=scribbleCanvas.width; previous.height=scribbleCanvas.height;
+      previous.getContext('2d').drawImage(scribbleCanvas,0,0);
     }
     scribbleCanvas.width=Math.max(1,Math.round(w*dpr));
     scribbleCanvas.height=Math.max(1,Math.round(h*dpr));
     scribbleCanvas.style.width=w+'px'; scribbleCanvas.style.height=h+'px';
     scribbleCtx.setTransform(dpr,0,0,dpr,0,0);
     scribbleCtx.lineCap='round'; scribbleCtx.lineJoin='round';
-    if(prevData){
-      const img=new Image();
-      img.onload=()=>scribbleCtx.drawImage(img,0,0,w,h);
-      img.src=prevData;
-    }
+    if(previous) scribbleCtx.drawImage(previous,0,0,previous.width,previous.height,0,0,w,h);
   }
   function clearScribbleCanvas(){
     scribbleCtx.save(); scribbleCtx.setTransform(1,0,0,1,0,0);
@@ -786,7 +801,7 @@
     handle.type='button'; handle.className='resize-handle';
     handle.setAttribute('aria-label','ลากเพื่อปรับขนาด'); handle.title='ลากเพื่อปรับขนาด';
     rec.el.appendChild(handle);
-    let active=false,moved=false,sx=0,sy=0,start={},commitTimer=null;
+    let active=false,moved=false,sx=0,sy=0,start={};
     handle.addEventListener('pointerdown',e=>{
       e.stopPropagation(); e.preventDefault(); select(rec);
       active=true; moved=false; sx=e.clientX; sy=e.clientY;
@@ -815,12 +830,10 @@
         drawShape(rec);
       }
       clampObject(rec);
-      clearTimeout(commitTimer);
-      commitTimer=setTimeout(()=>{ if(moved) commitHistory(); },120);
     });
     const finish=()=>{
       if(!active) return;
-      active=false; clearTimeout(commitTimer); if(moved) commitHistory();
+      active=false; if(moved) commitHistory();
     };
     handle.addEventListener('pointerup',finish);
     handle.addEventListener('pointercancel',finish);
@@ -828,19 +841,19 @@
   }
 
   /* ============ DRAW BARS (drag on empty board) ============ */
-  let drawing=false,sx=0,sy=0,draft=null;
+  let drawing=false,sx=0,sy=0,draft=null,drawBounds=null;
   board.addEventListener('pointerdown',e=>{
     if(e.target.closest('.obj')) return;
     if(cutMode){showToast('กรุณาแตะบนบาร์ หรือกดปุ่ม ✂️ อีกครั้งเพื่อยกเลิก'); return;}
     deselect(); drawing=true;
-    const r=rect(); sx=e.clientX-r.left; sy=e.clientY-r.top;
+    drawBounds=rect(); sx=e.clientX-drawBounds.left; sy=e.clientY-drawBounds.top;
     draft=document.createElement('div'); draft.className='draft';
     draft.style.cssText=`left:${sx}px;top:${sy}px;width:0;height:0`;
     board.appendChild(draft); board.setPointerCapture(e.pointerId);
   });
   board.addEventListener('pointermove',e=>{
     if(!drawing) return;
-    const r=rect(); let x=e.clientX-r.left,y=e.clientY-r.top;
+    const r=drawBounds; let x=e.clientX-r.left,y=e.clientY-r.top;
     x=Math.max(0,Math.min(x,r.width)); y=Math.max(0,Math.min(y,r.height));
     draft.style.left=Math.min(x,sx)+'px'; draft.style.top=Math.min(y,sy)+'px';
     draft.style.width=Math.abs(x-sx)+'px'; draft.style.height=Math.abs(y-sy)+'px';
@@ -849,12 +862,12 @@
     if(!drawing) return; drawing=false;
     const w=parseFloat(draft.style.width),h=parseFloat(draft.style.height);
     const l=parseFloat(draft.style.left),t=parseFloat(draft.style.top);
-    draft.remove(); draft=null;
+    draft.remove(); draft=null; drawBounds=null;
     if(w<24||h<18) return;
     createBar(l,t,w,h,curColor,'');
   });
   board.addEventListener('pointercancel',()=>{
-    drawing=false; if(draft){draft.remove(); draft=null;}
+    drawing=false; drawBounds=null; if(draft){draft.remove(); draft=null;}
   });
 
   /* ============ BAR ============ */
@@ -998,7 +1011,7 @@
 
   /* ============ SHARED MOVE (tap = onTap) ============ */
   function dragMove(rec,onTap){
-    const el=rec.el; let ox,oy,bl,bt,moved,active=false;
+    const el=rec.el; let ox,oy,bl,bt,maxX,maxY,moved,active=false;
     el.addEventListener('pointerdown',e=>{
       e.stopPropagation();
       if(cutMode&&rec.type!=='bar'){
@@ -1006,6 +1019,8 @@
       }
       select(rec); active=true; moved=false;
       ox=e.clientX; oy=e.clientY; bl=parseFloat(el.style.left); bt=parseFloat(el.style.top);
+      maxX=Math.max(0,board.clientWidth-el.offsetWidth);
+      maxY=Math.max(0,board.clientHeight-el.offsetHeight);
       el.setPointerCapture(e.pointerId);
     });
     el.addEventListener('pointermove',e=>{
@@ -1013,8 +1028,8 @@
       if(cutMode) return;
       const dx=e.clientX-ox, dy=e.clientY-oy;
       if(Math.abs(dx)>3||Math.abs(dy)>3) moved=true;
-      el.style.left=Math.max(0,Math.min(bl+dx, Math.max(0,board.clientWidth-el.offsetWidth)))+'px';
-      el.style.top =Math.max(0,Math.min(bt+dy, Math.max(0,board.clientHeight-el.offsetHeight)))+'px';
+      el.style.left=Math.max(0,Math.min(bl+dx,maxX))+'px';
+      el.style.top =Math.max(0,Math.min(bt+dy,maxY))+'px';
     });
     el.addEventListener('pointerup',e=>{
       if(active&&!moved&&onTap) onTap(e);
@@ -1255,8 +1270,15 @@
     }
   });
 
-  if('ResizeObserver' in window) new ResizeObserver(()=>{ objs.forEach(clampObject); fitScribbleCanvas(); }).observe(board);
-  else window.addEventListener('resize',()=>{ objs.forEach(clampObject); fitScribbleCanvas(); });
+  let resizeFrame=0;
+  function scheduleBoardFit(){
+    if(resizeFrame) return;
+    resizeFrame=requestAnimationFrame(()=>{
+      resizeFrame=0; objs.forEach(clampObject); fitScribbleCanvas();
+    });
+  }
+  if('ResizeObserver' in window) new ResizeObserver(scheduleBoardFit).observe(board);
+  else window.addEventListener('resize',scheduleBoardFit,{passive:true});
   history=pages[0].history.slice();
   undoBtn.disabled=history.length<=1;
   fitScribbleCanvas();
